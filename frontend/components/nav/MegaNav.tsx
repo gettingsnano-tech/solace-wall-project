@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown, Menu, X, ArrowRight, Shield, Wallet, BarChart3, GraduationCap, Users, LifeBuoy, TrendingUp, Cpu, Globe, Rocket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const NavItem = ({ title, items, isActive, onClick }) => {
+const NavItem = ({ title, items, isActive, onClick }: { title: string, items: any[], isActive: boolean, onClick: () => void }) => {
   return (
     <div className="relative group">
       <button 
@@ -47,7 +47,7 @@ const NavItem = ({ title, items, isActive, onClick }) => {
 };
 
 export default function MegaNav() {
-  const [activeItem, setActiveItem] = useState(null);
+  const [activeItem, setActiveItem] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

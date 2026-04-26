@@ -16,7 +16,7 @@ import {
 import { useAuthStore } from "@/lib/store";
 import { Toaster } from "react-hot-toast";
 
-const AdminSidebarItem = ({ icon: Icon, label, href, active }) => (
+const AdminSidebarItem = ({ icon: Icon, label, href, active }: { icon: any, label: string, href: string, active: boolean }) => (
   <Link href={href}>
     <div className={`flex items-center space-x-4 px-6 py-4 rounded-2xl transition-all duration-200 ${
       active 

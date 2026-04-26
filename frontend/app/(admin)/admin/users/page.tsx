@@ -16,7 +16,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -34,7 +34,7 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, []);
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter((u: any) => 
     u.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -80,7 +80,7 @@ export default function AdminUsersPage() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
-                  {filteredUsers.length > 0 ? filteredUsers.map((user, idx) => (
+                  {filteredUsers.length > 0 ? filteredUsers.map((user: any, idx) => (
                     <motion.tr 
                        key={user.id}
                        initial={{ opacity: 0, y: 5 }}

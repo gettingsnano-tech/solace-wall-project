@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown, Search, ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MarketPage() {
-  const [coins, setCoins] = useState([]);
+  const [coins, setCoins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -26,7 +26,7 @@ export default function MarketPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredCoins = coins.filter(c => 
+  const filteredCoins = coins.filter((c: any) => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.symbol.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -70,7 +70,7 @@ export default function MarketPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/[0.05]">
-                  {filteredCoins.map((coin, idx) => (
+                  {filteredCoins.map((coin: any, idx) => (
                     <motion.tr 
                       key={coin.id}
                       initial={{ opacity: 0, y: 10 }}

@@ -16,12 +16,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function AdminCoinsPage() {
-  const [coins, setCoins] = useState([]);
+  const [coins, setCoins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    symbol: string;
+    icon: File | null;
+  }>({
     name: "",
     symbol: "",
     icon: null
@@ -43,7 +47,7 @@ export default function AdminCoinsPage() {
     fetchCoins();
   }, []);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFormData({ ...formData, icon: e.target.files[0] });
     }

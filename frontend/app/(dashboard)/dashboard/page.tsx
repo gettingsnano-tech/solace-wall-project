@@ -17,8 +17,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const [balances, setBalances] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const [balances, setBalances] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function DashboardPage() {
     );
   }
 
-  const totalBalance = balances.reduce((sum, b) => sum + (parseFloat(b.amount) * 65000), 0); // Simplified USD conversion
+  const totalBalance = balances.reduce((sum, b: any) => sum + (parseFloat(b.amount) * 65000), 0); // Simplified USD conversion
 
   return (
     <div className="space-y-10">
@@ -103,7 +103,7 @@ export default function DashboardPage() {
           <Link href="/dashboard/wallet" className="text-xs font-bold text-[var(--primary)] uppercase tracking-widest hover:underline">View All</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {balances.length > 0 ? balances.map((bal, idx) => (
+          {balances.length > 0 ? balances.map((bal: any, idx) => (
             <motion.div 
                key={idx}
                initial={{ opacity: 0, y: 10 }}
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         <div className="glass-card rounded-[2rem] overflow-hidden">
           {transactions.length > 0 ? (
             <div className="divide-y divide-white/[0.05]">
-              {transactions.map((tx, idx) => (
+              {transactions.map((tx: any, idx) => (
                 <div key={idx} className="flex items-center justify-between p-6 hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>

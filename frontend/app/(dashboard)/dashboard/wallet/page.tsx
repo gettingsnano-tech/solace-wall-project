@@ -15,11 +15,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function WalletPage() {
-  const [coins, setCoins] = useState([]);
-  const [wallets, setWallets] = useState([]);
+  const [coins, setCoins] = useState<any[]>([]);
+  const [wallets, setWallets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(null);
-  const [copied, setCopied] = useState(null);
+  const [generating, setGenerating] = useState<any | null>(null);
+  const [copied, setCopied] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,7 +39,7 @@ export default function WalletPage() {
     fetchData();
   }, []);
 
-  const generateWallet = async (coinId) => {
+  const generateWallet = async (coinId: any) => {
     setGenerating(coinId);
     try {
       const { data } = await api.post(`/api/user/wallets/generate?coin_id=${coinId}`);
@@ -52,7 +52,7 @@ export default function WalletPage() {
     }
   };
 
-  const copyToClipboard = (text, id) => {
+  const copyToClipboard = (text: string, id: any) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
@@ -81,8 +81,8 @@ export default function WalletPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {coins.map((coin, idx) => {
-           const wallet = wallets.find(w => w.coin_id === coin.id);
+        {coins.map((coin: any, idx: number) => {
+           const wallet = wallets.find((w: any) => w.coin_id === coin.id);
            
            return (
              <motion.div 

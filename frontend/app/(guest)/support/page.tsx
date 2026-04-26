@@ -24,7 +24,7 @@ const faqs = [
   { q: "What happens when a withdrawal is rejected?", a: "If an admin rejects a withdrawal request, the status is updated in your transaction history. No balance is deducted." },
 ];
 
-const FAQItem = ({ q, a }) => {
+const FAQItem = ({ q, a }: { q: string, a: string }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="glass-card mb-4 rounded-2xl overflow-hidden transition-all">

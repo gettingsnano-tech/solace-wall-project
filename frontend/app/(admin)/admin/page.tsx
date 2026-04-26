@@ -34,7 +34,7 @@ export default function AdminDashboardPage() {
         setStats({
           users: usersRes.data.length,
           coins: coinsRes.data.length,
-          pendingWithdrawals: withdrawRes.data.filter(w => w.status === 'pending').length,
+          pendingWithdrawals: withdrawRes.data.filter((w: any) => w.status === 'pending').length,
           totalDeposits: 1250000 // Simulated value for overview
         });
       } catch (error) {

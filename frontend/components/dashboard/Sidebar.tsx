@@ -20,7 +20,7 @@ import {
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/lib/store";
 
-const SidebarItem = ({ icon: Icon, label, href, active, collapsed }) => (
+const SidebarItem = ({ icon: Icon, label, href, active, collapsed }: { icon: any, label: string, href: string, active: boolean, collapsed: boolean }) => (
   <Link href={href}>
     <div className={`flex items-center space-x-4 px-4 py-3 rounded-2xl transition-all duration-200 group ${
       active 

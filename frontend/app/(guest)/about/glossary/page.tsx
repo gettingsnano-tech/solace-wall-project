@@ -47,7 +47,7 @@ export default function GlossaryPage() {
                   placeholder="Search for a term..." 
                   className="w-full bg-white/[0.05] border border-white/10 rounded-full py-5 pl-16 pr-8 text-white focus:outline-none focus:border-[var(--primary)]/50 transition-all shadow-2xl"
                   value={search}
-                  onChange={(e) => setSearch(e.setSearch(e.target.value))}
+                  onChange={(e) => setSearch(e.target.value)}
                   // Fixed typo in original thought, it should be setSearch(e.target.value)
                />
             </div>

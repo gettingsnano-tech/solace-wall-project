@@ -13,9 +13,10 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
@@ -33,7 +34,7 @@ export default function TransactionsPage() {
     fetchTx();
   }, []);
 
-  const filteredTx = transactions.filter(tx => {
+  const filteredTx = transactions.filter((tx: any) => {
     if (filter === "all") return true;
     return tx.type === filter;
   });
@@ -82,7 +83,7 @@ export default function TransactionsPage() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
-                  {filteredTx.length > 0 ? filteredTx.map((tx, idx) => (
+                  {filteredTx.length > 0 ? filteredTx.map((tx: any, idx) => (
                     <motion.tr 
                        key={tx.id}
                        initial={{ opacity: 0, y: 5 }}

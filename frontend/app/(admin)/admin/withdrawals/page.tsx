@@ -17,10 +17,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function AdminWithdrawalsPage() {
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
-  const [processing, setProcessing] = useState(null);
+  const [processing, setProcessing] = useState<number | string | null>(null);
 
   const fetchRequests = async () => {
     try {
@@ -37,7 +37,7 @@ export default function AdminWithdrawalsPage() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (id, action) => {
+  const handleAction = async (id: number | string, action: string) => {
     setProcessing(id);
     try {
       await api.put(`/api/admin/withdrawals/${id}/${action}`);
@@ -50,7 +50,7 @@ export default function AdminWithdrawalsPage() {
     }
   };
 
-  const filteredRequests = requests.filter(r => {
+  const filteredRequests = requests.filter((r: any) => {
     if (filter === "all") return true;
     return r.status === filter;
   });
@@ -101,7 +101,7 @@ export default function AdminWithdrawalsPage() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
-                  {filteredRequests.length > 0 ? filteredRequests.map((req, idx) => (
+                  {filteredRequests.length > 0 ? filteredRequests.map((req: any, idx) => (
                     <motion.tr 
                        key={req.id}
                        initial={{ opacity: 0, scale: 0.98 }}

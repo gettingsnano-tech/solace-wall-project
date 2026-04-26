@@ -20,11 +20,11 @@ import toast from "react-hot-toast";
 export default function AdminUserDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [balances, setBalances] = useState([]);
-  const [wallets, setWallets] = useState([]);
-  const [coins, setCoins] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  const [user, setUser] = useState<any | null>(null);
+  const [balances, setBalances] = useState<any[]>([]);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [coins, setCoins] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [showTopUp, setShowTopUp] = useState(false);
@@ -44,7 +44,7 @@ export default function AdminUserDetailPage() {
         api.get("/api/admin/users")
       ]);
       
-      const foundUser = usersRes.data.find(u => u.id === parseInt(id as string));
+      const foundUser = usersRes.data.find((u: any) => u.id === parseInt(id as string));
       if (!foundUser) {
         toast.error("User not found");
         router.push("/admin/users");
@@ -131,7 +131,7 @@ export default function AdminUserDetailPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 {coins.map((coin, idx) => (
+                 {coins.map((coin: any, idx) => (
                     <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-2xl flex justify-between items-center group hover:border-[var(--primary)]/20 transition-all">
                        <div className="flex items-center space-x-4">
                           <img src={coin.icon_url} alt={coin.symbol} className="w-8 h-8 rounded-full" />
@@ -216,7 +216,7 @@ export default function AdminUserDetailPage() {
                             onChange={(e) => setTopUpData({...topUpData, coin_id: e.target.value})}
                           >
                              <option value="">Choose coin</option>
-                             {coins.map(c => <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>)}
+                             {coins.map((c: any) => <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>)}
                           </select>
                           <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                        </div>

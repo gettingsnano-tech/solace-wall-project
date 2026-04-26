@@ -17,8 +17,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function AdminWalletsPage() {
-  const [wallets, setWallets] = useState([]);
-  const [coins, setCoins] = useState([]);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [coins, setCoins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +69,7 @@ export default function AdminWalletsPage() {
     }
   };
 
-  const filteredWallets = wallets.filter(w => 
+  const filteredWallets = wallets.filter((w: any) => 
     w.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.network.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -128,7 +128,7 @@ export default function AdminWalletsPage() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
-                  {filteredWallets.map((wallet, idx) => (
+                  {filteredWallets.map((wallet: any, idx) => (
                     <motion.tr 
                        key={wallet.id}
                        initial={{ opacity: 0, y: 5 }}
@@ -192,7 +192,7 @@ export default function AdminWalletsPage() {
                          onChange={(e) => setFormData({...formData, coin_id: e.target.value})}
                        >
                           <option value="">Choose asset</option>
-                          {coins.map(c => <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>)}
+                          {coins.map((c: any) => <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>)}
                        </select>
                     </div>
 

@@ -16,8 +16,8 @@ import { useRouter } from "next/navigation";
 
 export default function WithdrawPage() {
   const router = useRouter();
-  const [coins, setCoins] = useState([]);
-  const [balances, setBalances] = useState([]);
+  const [coins, setCoins] = useState<any[]>([]);
+  const [balances, setBalances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -47,8 +47,8 @@ export default function WithdrawPage() {
     fetchData();
   }, []);
 
-  const selectedCoin = coins.find(c => c.id === parseInt(formData.coin_id));
-  const selectedBalance = balances.find(b => b.coin.id === parseInt(formData.coin_id))?.amount || 0;
+  const selectedCoin = coins.find((c: any) => c.id === parseInt(formData.coin_id));
+  const selectedBalance = balances.find((b: any) => b.coin.id === parseInt(formData.coin_id))?.amount || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +122,7 @@ export default function WithdrawPage() {
                        onChange={(e) => setFormData({...formData, coin_id: e.target.value})}
                     >
                        <option value="">Select a coin</option>
-                       {coins.map(coin => (
+                       {coins.map((coin: any) => (
                          <option key={coin.id} value={coin.id}>{coin.name} ({coin.symbol})</option>
                        ))}
                     </select>
