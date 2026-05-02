@@ -43,6 +43,7 @@ export default function Sidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Wallet, label: "My Wallets", href: "/dashboard/wallet" },
+    { icon: ArrowDownLeft, label: "Deposit", href: "/dashboard/deposit" },
     { icon: DollarSign, label: "Buy Crypto", href: "/dashboard/buy" },
     { icon: ShoppingCart, label: "Sell Crypto", href: "/dashboard/sell" },
     { icon: History, label: "Transactions", href: "/dashboard/transactions" },

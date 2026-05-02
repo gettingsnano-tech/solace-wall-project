@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
+import utils.auth
 from utils.auth import create_access_token, get_password_hash, verify_password, decode_access_token
 from datetime import timedelta
 
@@ -25,7 +26,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.post("/login")
-def login(response: Response, user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+def login(response: Response, user_data: schemas.UserLogin, db: Session = Depends(get_db)):
     # Note: Using UserCreate schema for login (email/password), we can refine this
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if not user or not verify_password(user_data.password, user.hashed_password):
@@ -36,6 +37,17 @@ def login(response: Response, user_data: schemas.UserCreate, db: Session = Depen
         )
     
     access_token = create_access_token(data={"sub": user.email, "role": user.role})
+    
+    # Add login notification
+    notification = models.Notification(
+        user_id=user.id,
+        type="login",
+        message="New login detected for your account."
+    )
+    db.add(notification)
+    db.commit()
+
+    # In a real app, send an email here if user.email_notif_login is True
     
     # Set httpOnly cookie
     response.set_cookie(

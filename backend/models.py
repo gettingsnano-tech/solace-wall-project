@@ -26,11 +26,30 @@ class User(Base):
     role = Column(String, default=UserRole.USER)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    two_factor_enabled = Column(Boolean, default=False)
+    two_factor_secret = Column(String, nullable=True)
+    
+    email_notif_login = Column(Boolean, default=True)
+    email_notif_deposit = Column(Boolean, default=True)
+    email_notif_withdrawal = Column(Boolean, default=True)
 
     wallets = relationship("UserWallet", back_populates="user")
     balances = relationship("Balance", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
-    withdrawal_requests = relationship("WithdrawalRequest", back_populates="user")
+    withdrawal_requests = relationship("WithdrawalRequest", back_populates="user", foreign_keys="WithdrawalRequest.user_id")
+    notifications = relationship("Notification", back_populates="user")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    type = Column(String) # login, deposit, withdrawal, security
+    message = Column(String)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="notifications")
 
 class Coin(Base):
     __tablename__ = "coins"
@@ -41,10 +60,21 @@ class Coin(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    networks = relationship("CoinNetwork", back_populates="coin")
     wallet_addresses = relationship("WalletAddress", back_populates="coin")
     user_wallets = relationship("UserWallet", back_populates="coin")
     balances = relationship("Balance", back_populates="coin")
     transactions = relationship("Transaction", back_populates="coin")
+
+class CoinNetwork(Base):
+    __tablename__ = "coin_networks"
+    id = Column(Integer, primary_key=True, index=True)
+    coin_id = Column(Integer, ForeignKey("coins.id"))
+    name = Column(String) # e.g. "ERC-20"
+    label = Column(String) # User-friendly label
+    is_active = Column(Boolean, default=True)
+
+    coin = relationship("Coin", back_populates="networks")
 
 class WalletAddress(Base):
     __tablename__ = "wallet_addresses"
@@ -64,6 +94,7 @@ class UserWallet(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     coin_id = Column(Integer, ForeignKey("coins.id"))
     address_id = Column(Integer, ForeignKey("wallet_addresses.id"))
+    network = Column(String, nullable=True) # Explicit network assignment
     assigned_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User", back_populates="wallets")
@@ -112,4 +143,5 @@ class WithdrawalRequest(Base):
     reviewed_at = Column(DateTime, nullable=True)
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    user = relationship("User", back_populates="withdrawal_requests")
+    user = relationship("User", back_populates="withdrawal_requests", foreign_keys=[user_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])

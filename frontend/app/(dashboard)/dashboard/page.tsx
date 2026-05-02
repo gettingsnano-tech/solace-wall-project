@@ -19,17 +19,20 @@ import Link from "next/link";
 export default function DashboardPage() {
   const [balances, setBalances] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [marketData, setMarketData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [balRes, txRes] = await Promise.all([
+        const [balRes, txRes, marketRes] = await Promise.all([
           api.get("/api/user/balances"),
-          api.get("/api/user/transactions")
+          api.get("/api/user/transactions"),
+          api.get("/api/public/market")
         ]);
         setBalances(balRes.data);
         setTransactions(txRes.data.slice(0, 5)); // Only last 5
+        setMarketData(marketRes.data);
       } catch (error) {
         console.error("Dashboard data fetch failed", error);
       } finally {
@@ -47,7 +50,17 @@ export default function DashboardPage() {
     );
   }
 
-  const totalBalance = balances.reduce((sum, b: any) => sum + (parseFloat(b.amount) * 65000), 0); // Simplified USD conversion
+  const getCoinPrice = (symbol: string) => {
+    const marketCoin = marketData.find((m: any) => m.symbol.toLowerCase() === symbol.toLowerCase());
+    return marketCoin ? marketCoin.current_price : 0;
+  };
+
+  const getCoinChange = (symbol: string) => {
+    const marketCoin = marketData.find((m: any) => m.symbol.toLowerCase() === symbol.toLowerCase());
+    return marketCoin ? marketCoin.price_change_percentage_24h : 0;
+  };
+
+  const totalBalance = balances.reduce((sum, b: any) => sum + (parseFloat(b.amount) * getCoinPrice(b.coin.symbol)), 0);
 
   return (
     <div className="space-y-10">
@@ -111,7 +124,7 @@ export default function DashboardPage() {
                transition={{ delay: idx * 0.1 }}
                className="glass-card p-6 rounded-[2rem] hover:scale-[1.02] transition-all"
             >
-               <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center space-x-4">
                      <img src={bal.coin.icon_url} alt={bal.coin.name} className="w-10 h-10 rounded-full" />
                      <div>
@@ -119,13 +132,15 @@ export default function DashboardPage() {
                         <div className="text-xs text-gray-400 uppercase">{bal.coin.symbol}</div>
                      </div>
                   </div>
-                  <div className="text-[var(--secondary)] bg-[var(--secondary)]/10 px-2 py-1 rounded-lg text-xs font-bold">
-                     +2.4%
-                  </div>
+                  {getCoinChange(bal.coin.symbol) !== 0 && (
+                    <div className={`${getCoinChange(bal.coin.symbol) >= 0 ? 'text-[var(--secondary)] bg-[var(--secondary)]/10' : 'text-red-500 bg-red-500/10'} px-2 py-1 rounded-lg text-xs font-bold`}>
+                       {getCoinChange(bal.coin.symbol) > 0 ? '+' : ''}{getCoinChange(bal.coin.symbol).toFixed(2)}%
+                    </div>
+                  )}
                </div>
                <div className="space-y-1">
                   <div className="text-2xl font-black">{parseFloat(bal.amount).toFixed(bal.coin.symbol === 'USDT' ? 2 : 6)} {bal.coin.symbol}</div>
-                  <div className="text-sm text-gray-500 font-medium">≈ ${(parseFloat(bal.amount) * 65000).toLocaleString()}</div>
+                  <div className="text-sm text-gray-500 font-medium">≈ ${(parseFloat(bal.amount) * getCoinPrice(bal.coin.symbol)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                </div>
             </motion.div>
           )) : (

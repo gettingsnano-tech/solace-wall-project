@@ -10,6 +10,10 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
 class UserResponse(UserBase):
     id: int
     role: str
@@ -35,6 +39,21 @@ class CoinResponse(CoinBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class CoinNetworkBase(BaseModel):
+    coin_id: int
+    name: str
+    label: str
+
+class CoinNetworkCreate(BaseModel):
+    """Body for POST /api/admin/coins/{coin_id}/networks — coin_id comes from URL."""
+    name: str
+    label: str
+
+class CoinNetworkResponse(CoinNetworkBase):
+    id: int
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
 class WalletAddressBase(BaseModel):
     coin_id: int
     network: str
@@ -43,10 +62,29 @@ class WalletAddressBase(BaseModel):
 class WalletAddressCreate(WalletAddressBase):
     pass
 
+class BulkWalletCreate(BaseModel):
+    coin_id: int
+    network: str
+    addresses: List[str]
+
 class WalletAddressResponse(WalletAddressBase):
     id: int
     is_used: bool
     created_at: datetime
+    coin: Optional[CoinResponse] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class UserWalletResponse(BaseModel):
+    id: int
+    coin: CoinResponse
+    network: Optional[str] = None
+    address: WalletAddressResponse
+    model_config = ConfigDict(from_attributes=True)
+
+class DepositAddressResponse(BaseModel):
+    address: str
+    network: str
+    coin: CoinResponse
     model_config = ConfigDict(from_attributes=True)
 
 class BalanceResponse(BaseModel):
@@ -99,3 +137,30 @@ class MarketCoin(BaseModel):
     market_cap: float
     total_volume: float
     image: str
+
+class UserSettingsResponse(BaseModel):
+    two_factor_enabled: bool
+    email_notif_login: bool
+    email_notif_deposit: bool
+    email_notif_withdrawal: bool
+    model_config = ConfigDict(from_attributes=True)
+
+class UserSettingsUpdate(BaseModel):
+    email_notif_login: Optional[bool] = None
+    email_notif_deposit: Optional[bool] = None
+    email_notif_withdrawal: Optional[bool] = None
+
+class NotificationResponse(BaseModel):
+    id: int
+    type: str
+    message: str
+    is_read: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class Enable2FAResponse(BaseModel):
+    secret: str
+    qr_uri: str
+
+class Verify2FARequest(BaseModel):
+    token: str

@@ -10,10 +10,20 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   XCircle,
-  Coins
+  Coins,
+  Network,
+  X,
+  ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+
+type CoinNetwork = {
+  id: number;
+  name: string;
+  label: string;
+  is_active: boolean;
+};
 
 export default function AdminCoinsPage() {
   const [coins, setCoins] = useState<any[]>([]);
@@ -21,6 +31,13 @@ export default function AdminCoinsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
+  // Network modal state
+  const [networkCoin, setNetworkCoin] = useState<any | null>(null);
+  const [networks, setNetworks] = useState<CoinNetwork[]>([]);
+  const [networksLoading, setNetworksLoading] = useState(false);
+  const [networkForm, setNetworkForm] = useState({ name: "", label: "" });
+  const [addingNetwork, setAddingNetwork] = useState(false);
+
   const [formData, setFormData] = useState<{
     name: string;
     symbol: string;
@@ -36,7 +53,6 @@ export default function AdminCoinsPage() {
       const { data } = await api.get("/api/admin/coins");
       setCoins(data);
     } catch (error) {
-       // On first load, coins might not be initialized if seed failed or data is fresh
        setCoins([]);
     } finally {
       setLoading(false);
@@ -46,6 +62,48 @@ export default function AdminCoinsPage() {
   useEffect(() => {
     fetchCoins();
   }, []);
+
+  // ── Fetch networks when modal opens ──────────────────────────────────────
+  const openNetworkModal = async (coin: any) => {
+    setNetworkCoin(coin);
+    setNetworksLoading(true);
+    try {
+      const { data } = await api.get(`/api/admin/coins/${coin.id}/networks`);
+      setNetworks(data);
+    } catch {
+      toast.error("Failed to load networks");
+    } finally {
+      setNetworksLoading(false);
+    }
+  };
+
+  const handleAddNetwork = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!networkCoin) return;
+    setAddingNetwork(true);
+    try {
+      await api.post(`/api/admin/coins/${networkCoin.id}/networks`, networkForm);
+      toast.success("Network added!");
+      setNetworkForm({ name: "", label: "" });
+      const { data } = await api.get(`/api/admin/coins/${networkCoin.id}/networks`);
+      setNetworks(data);
+    } catch {
+      toast.error("Failed to add network");
+    } finally {
+      setAddingNetwork(false);
+    }
+  };
+
+  const handleDeleteNetwork = async (netId: number) => {
+    if (!networkCoin) return;
+    try {
+      await api.delete(`/api/admin/networks/${netId}`);
+      setNetworks((prev) => prev.filter((n) => n.id !== netId));
+      toast.success("Network removed");
+    } catch {
+      toast.error("Failed to remove network");
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -132,21 +190,23 @@ export default function AdminCoinsPage() {
                   </div>
                </div>
                
-               <div className="grid grid-cols-2 gap-4">
+               <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => openNetworkModal(coin)}
+                    className="col-span-2 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2"
+                  >
+                     <Network className="w-4 h-4" />
+                     <span>Manage Networks</span>
+                  </button>
                   <button className="bg-white/[0.05] hover:bg-white/[0.1] py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
                      <Settings className="w-4 h-4" />
-                     <span>Edit</span>
-                  </button>
-                  <button className="bg-red-500/5 hover:bg-red-500/10 text-red-500 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
-                     <Trash2 className="w-4 h-4" />
-                     <span>Disable</span>
                   </button>
                </div>
             </motion.div>
          ))}
       </div>
 
-      {/* Add Coin Modal */}
+      {/* ── Add Coin Modal */}
       <AnimatePresence>
          {showAdd && (
            <motion.div 
@@ -219,6 +279,100 @@ export default function AdminCoinsPage() {
                           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publish Coin"}
                        </button>
                     </div>
+                 </form>
+              </motion.div>
+           </motion.div>
+         )}
+      </AnimatePresence>
+
+      {/* ── Network Management Modal */}
+      <AnimatePresence>
+         {networkCoin && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+           >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="glass-card w-full max-w-lg p-10 rounded-[3rem] space-y-8"
+              >
+                 {/* Header */}
+                 <div className="flex items-center justify-between">
+                    <div>
+                       <h3 className="text-2xl font-black">
+                          {networkCoin.name} <span className="text-gradient">Networks</span>
+                       </h3>
+                       <p className="text-xs text-gray-500 mt-1">Define deposit networks available for this coin.</p>
+                    </div>
+                    <button
+                      onClick={() => setNetworkCoin(null)}
+                      className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                 </div>
+
+                 {/* Existing networks */}
+                 <div className="space-y-3">
+                    {networksLoading ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="w-8 h-8 animate-spin text-[var(--primary)]" />
+                      </div>
+                    ) : networks.length === 0 ? (
+                      <div className="text-center py-8 text-gray-600 text-sm font-bold">No networks yet.</div>
+                    ) : (
+                      networks.map((net) => (
+                        <div
+                          key={net.id}
+                          className="flex items-center justify-between bg-white/[0.03] rounded-2xl px-5 py-4 border border-white/[0.05]"
+                        >
+                          <div>
+                            <p className="font-black text-sm">{net.name}</p>
+                            <p className="text-xs text-gray-500">{net.label}</p>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteNetwork(net.id)}
+                            className="p-2 text-gray-600 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                 </div>
+
+                 {/* Add new network form */}
+                 <form onSubmit={handleAddNetwork} className="space-y-4">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Add New Network</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Name (e.g. ERC-20)"
+                        className="bg-[#0A0E1A] border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                        value={networkForm.name}
+                        onChange={(e) => setNetworkForm({ ...networkForm, name: e.target.value })}
+                      />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Label (e.g. Ethereum)"
+                        className="bg-[#0A0E1A] border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                        value={networkForm.label}
+                        onChange={(e) => setNetworkForm({ ...networkForm, label: e.target.value })}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={addingNetwork}
+                      className="w-full btn-primary py-3 rounded-2xl text-sm font-bold flex items-center justify-center space-x-2"
+                    >
+                      {addingNetwork ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /><span>Add Network</span></>}
+                    </button>
                  </form>
               </motion.div>
            </motion.div>

@@ -7,13 +7,15 @@ from utils.simulate import generate_tx_hash
 import os
 import shutil
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
 UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+
+# ─── Coins ───────────────────────────────────────────────────────────────────
 
 @router.post("/coins", response_model=schemas.CoinResponse)
 async def create_coin(
@@ -39,6 +41,34 @@ async def create_coin(
 def list_coins(db: Session = Depends(get_db)):
     return db.query(models.Coin).all()
 
+# ─── Coin Networks ────────────────────────────────────────────────────────────
+
+@router.post("/coins/{coin_id}/networks", response_model=schemas.CoinNetworkResponse)
+def add_coin_network(coin_id: int, network: schemas.CoinNetworkCreate, db: Session = Depends(get_db)):
+    coin = db.query(models.Coin).filter(models.Coin.id == coin_id).first()
+    if not coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+    new_network = models.CoinNetwork(coin_id=coin_id, name=network.name, label=network.label)
+    db.add(new_network)
+    db.commit()
+    db.refresh(new_network)
+    return new_network
+
+@router.get("/coins/{coin_id}/networks", response_model=List[schemas.CoinNetworkResponse])
+def list_coin_networks(coin_id: int, db: Session = Depends(get_db)):
+    return db.query(models.CoinNetwork).filter(models.CoinNetwork.coin_id == coin_id).all()
+
+@router.delete("/networks/{network_id}")
+def delete_coin_network(network_id: int, db: Session = Depends(get_db)):
+    network = db.query(models.CoinNetwork).filter(models.CoinNetwork.id == network_id).first()
+    if not network:
+        raise HTTPException(status_code=404, detail="Network not found")
+    db.delete(network)
+    db.commit()
+    return {"message": "Network removed"}
+
+# ─── Wallet Addresses ─────────────────────────────────────────────────────────
+
 @router.post("/wallets", response_model=schemas.WalletAddressResponse)
 def create_wallet_address(wallet: schemas.WalletAddressCreate, db: Session = Depends(get_db)):
     new_address = models.WalletAddress(**wallet.model_dump())
@@ -47,13 +77,86 @@ def create_wallet_address(wallet: schemas.WalletAddressCreate, db: Session = Dep
     db.refresh(new_address)
     return new_address
 
+@router.post("/wallets/bulk", response_model=List[schemas.WalletAddressResponse])
+def bulk_create_wallet_addresses(payload: schemas.BulkWalletCreate, db: Session = Depends(get_db)):
+    created = []
+    skipped = 0
+    for addr in payload.addresses:
+        addr = addr.strip()
+        if not addr:
+            continue
+        # Skip duplicates
+        exists = db.query(models.WalletAddress).filter(models.WalletAddress.address == addr).first()
+        if exists:
+            skipped += 1
+            continue
+        new_address = models.WalletAddress(
+            coin_id=payload.coin_id,
+            network=payload.network,
+            address=addr
+        )
+        db.add(new_address)
+        created.append(new_address)
+    db.commit()
+    for a in created:
+        db.refresh(a)
+    return created
+
 @router.get("/wallets", response_model=List[schemas.WalletAddressResponse])
-def list_wallets(db: Session = Depends(get_db)):
-    return db.query(models.WalletAddress).all()
+def list_wallets(
+    coin_id: Optional[int] = None,
+    network: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    q = db.query(models.WalletAddress)
+    if coin_id:
+        q = q.filter(models.WalletAddress.coin_id == coin_id)
+    if network:
+        q = q.filter(models.WalletAddress.network == network)
+    return q.all()
+
+@router.get("/wallets/stats")
+def wallet_pool_stats(db: Session = Depends(get_db)):
+    """Return pool availability stats grouped by coin + network."""
+    from sqlalchemy import func
+    rows = (
+        db.query(
+            models.WalletAddress.coin_id,
+            models.WalletAddress.network,
+            func.count(models.WalletAddress.id).label("total"),
+            func.sum(
+                models.WalletAddress.is_used.cast(models.WalletAddress.is_used.type.__class__)
+            ).label("used"),
+        )
+        .group_by(models.WalletAddress.coin_id, models.WalletAddress.network)
+        .all()
+    )
+
+    # Enrich with coin info
+    coins = {c.id: c for c in db.query(models.Coin).all()}
+    result = []
+    for row in rows:
+        coin = coins.get(row.coin_id)
+        used = int(row.used or 0)
+        total = int(row.total or 0)
+        result.append({
+            "coin_id": row.coin_id,
+            "coin_name": coin.name if coin else f"#{row.coin_id}",
+            "coin_symbol": coin.symbol if coin else "?",
+            "network": row.network,
+            "total": total,
+            "used": used,
+            "available": total - used,
+        })
+    return result
+
+# ─── Users ────────────────────────────────────────────────────────────────────
 
 @router.get("/users", response_model=List[schemas.UserResponse])
 def list_users(db: Session = Depends(get_db)):
     return db.query(models.User).filter(models.User.role == "user").all()
+
+# ─── Top-up ───────────────────────────────────────────────────────────────────
 
 @router.post("/topup")
 def topup_user(topup: schemas.TopUpRequest, db: Session = Depends(get_db)):
@@ -82,8 +185,21 @@ def topup_user(topup: schemas.TopUpRequest, db: Session = Depends(get_db)):
         balance = models.Balance(user_id=topup.user_id, coin_id=topup.coin_id, amount=topup.amount)
         db.add(balance)
     
+    # Add deposit notification
+    notification = models.Notification(
+        user_id=topup.user_id,
+        type="deposit",
+        message=f"A deposit of {topup.amount} has been successfully credited to your account."
+    )
+    db.add(notification)
+    
     db.commit()
+    
+    # Optional: Send email if user.email_notif_deposit is True
+    
     return {"message": "Top-up successful"}
+
+# ─── Withdrawals ──────────────────────────────────────────────────────────────
 
 @router.get("/withdrawals", response_model=List[schemas.WithdrawalRequestResponse])
 def list_withdrawals(db: Session = Depends(get_db)):
@@ -99,22 +215,18 @@ def approve_withdrawal(id: int, db: Session = Depends(get_db), admin: models.Use
     request.reviewed_at = datetime.utcnow()
     request.reviewed_by = admin.id
     
-    # Update transaction record if exists or balance
-    # In my logic, we deduct balance ON APPROVAL as per standard simulator flow
     balance = db.query(models.Balance).filter(
         models.Balance.user_id == request.user_id,
         models.Balance.coin_id == request.coin_id
     ).first()
     
     if not balance or balance.amount < request.amount:
-        # This shouldn't happen if validation was done on submission, but safety first
         request.status = "rejected"
         db.commit()
         raise HTTPException(status_code=400, detail="Insufficient user balance")
 
     balance.amount -= request.amount
     
-    # Log transaction
     new_tx = models.Transaction(
         user_id=request.user_id,
         coin_id=request.coin_id,
