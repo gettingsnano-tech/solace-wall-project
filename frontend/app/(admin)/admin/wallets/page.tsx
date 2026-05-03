@@ -12,9 +12,11 @@ import {
   XCircle,
   BarChart3,
   X,
-  Upload
+  Upload,
+  Network
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import toast from "react-hot-toast";
 
 type PoolStat = {
@@ -40,18 +42,18 @@ export default function AdminWalletsPage() {
   const [filterCoinId, setFilterCoinId] = useState("");
   const [filterNetwork, setFilterNetwork] = useState("");
 
-  // Bulk add form
   const [bulkForm, setBulkForm] = useState({
     coin_id: "",
     network: "",
     addresses: ""
   });
+  const [coinNetworks, setCoinNetworks] = useState<any[]>([]);
+  const [networksLoading, setNetworksLoading] = useState(false);
 
   const fetchData = async () => {
     try {
       const params: Record<string, any> = {};
       if (filterCoinId) params.coin_id = filterCoinId;
-      if (filterNetwork) params.network = filterNetwork;
 
       const [walletsRes, coinsRes, statsRes] = await Promise.all([
         api.get("/api/admin/wallets", { params }),
@@ -61,6 +63,7 @@ export default function AdminWalletsPage() {
       setWallets(walletsRes.data);
       setCoins(coinsRes.data);
       setPoolStats(statsRes.data);
+      setSelectedIds([]); // Clear selection on new data
     } catch (error) {
       toast.error("Failed to fetch address pool.");
     } finally {
@@ -71,10 +74,35 @@ export default function AdminWalletsPage() {
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterCoinId, filterNetwork]);
+  }, [filterCoinId]);
+
+  // Fetch networks when coin is selected in bulk form
+  useEffect(() => {
+    if (!bulkForm.coin_id) {
+        setCoinNetworks([]);
+        return;
+    }
+    const fetchNetworks = async () => {
+        setNetworksLoading(true);
+        try {
+            const { data } = await api.get(`/api/admin/coins/${bulkForm.coin_id}/networks`);
+            setCoinNetworks(data);
+            setBulkForm(prev => ({ ...prev, network: "" })); // Reset network on coin change
+        } catch {
+            toast.error("Failed to fetch coin networks");
+        } finally {
+            setNetworksLoading(false);
+        }
+    };
+    fetchNetworks();
+  }, [bulkForm.coin_id]);
 
   const handleBulkAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!bulkForm.network) {
+        toast.error("Please select a network.");
+        return;
+    }
     setSubmitting(true);
     const lines = bulkForm.addresses
       .split("\n")
@@ -102,10 +130,54 @@ export default function AdminWalletsPage() {
     }
   };
 
-  const filteredWallets = wallets.filter((w: any) =>
-    w.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    w.network.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [deletingBulk, setDeletingBulk] = useState(false);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredWallets.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredWallets.map((w: any) => w.id));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} addresses?`)) return;
+    setDeletingBulk(true);
+    try {
+      await api.delete("/api/admin/wallets/bulk", { data: selectedIds });
+      toast.success("Addresses deleted!");
+      setSelectedIds([]);
+      fetchData();
+    } catch {
+      toast.error("Failed to delete addresses");
+    } finally {
+      setDeletingBulk(false);
+    }
+  };
+
+  const filteredWallets = wallets.filter((w: any) => {
+    const search = searchTerm.toLowerCase();
+    const netFilter = filterNetwork.toLowerCase();
+    
+    // Search match (Name, Symbol, Network, or Address)
+    const matchesSearch = 
+        w.address.toLowerCase().includes(search) ||
+        w.network.toLowerCase().includes(search) ||
+        (w.coin?.name || "").toLowerCase().includes(search) ||
+        (w.coin?.symbol || "").toLowerCase().includes(search);
+        
+    // Network filter match (loose)
+    const matchesNetwork = !filterNetwork || w.network.toLowerCase().includes(netFilter);
+    
+    return matchesSearch && matchesNetwork;
+  });
 
   const healthColor = (available: number, total: number) => {
     if (total === 0) return "text-gray-500 bg-gray-500/10";
@@ -144,13 +216,37 @@ export default function AdminWalletsPage() {
                <p className="text-gray-400 text-sm">Pre-seeded wallet addresses available for user assignment.</p>
             </div>
          </div>
-         <button 
-            onClick={() => setShowBulkAdd(true)}
-            className="btn-primary flex items-center space-x-2 py-2.5 px-6"
-         >
-            <Upload className="w-4 h-4" />
-            <span className="text-xs">Bulk Import</span>
-         </button>
+         <div className="flex items-center space-x-3">
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={handleBulkDelete}
+                  disabled={deletingBulk}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center space-x-2 py-2.5 px-6 rounded-full transition-all text-xs font-black uppercase tracking-widest border border-red-500/20"
+                >
+                  {deletingBulk ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  <span>Delete {selectedIds.length}</span>
+                </motion.button>
+              )}
+            </AnimatePresence>
+            <Link 
+               href="/admin/coins"
+               className="bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-white flex items-center space-x-2 py-2.5 px-6 rounded-full transition-all"
+            >
+               <Network className="w-4 h-4" />
+               <span className="text-xs">Manage Networks</span>
+            </Link>
+            <button 
+               onClick={() => setShowBulkAdd(true)}
+               className="btn-primary flex items-center space-x-2 py-2.5 px-6"
+            >
+               <Upload className="w-4 h-4" />
+               <span className="text-xs">Bulk Import</span>
+            </button>
+         </div>
       </div>
 
       {/* Pool Stats Cards */}
@@ -235,7 +331,15 @@ export default function AdminWalletsPage() {
             <table className="w-full text-left">
                <thead>
                   <tr className="border-b border-white/[0.05] text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                     <th className="px-8 py-6">Coin</th>
+                     <th className="px-8 py-6 w-10">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-white/10 bg-white/5 checked:bg-[var(--primary)] transition-all cursor-pointer"
+                          checked={filteredWallets.length > 0 && selectedIds.length === filteredWallets.length}
+                          onChange={toggleSelectAll}
+                        />
+                     </th>
+                     <th className="px-6 py-6">Coin</th>
                      <th className="px-6 py-6">Network</th>
                      <th className="px-6 py-6 font-mono">Wallet Address</th>
                      <th className="px-6 py-6">Status</th>
@@ -245,7 +349,7 @@ export default function AdminWalletsPage() {
                <tbody className="divide-y divide-white/[0.05]">
                   {filteredWallets.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-8 py-12 text-center text-gray-600 font-bold text-sm">
+                      <td colSpan={6} className="px-8 py-12 text-center text-gray-600 font-bold text-sm">
                         No addresses found.
                       </td>
                     </tr>
@@ -255,9 +359,18 @@ export default function AdminWalletsPage() {
                        initial={{ opacity: 0, y: 5 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: idx * 0.02 }}
-                       className="group hover:bg-white/[0.01]"
+                       className={`group hover:bg-white/[0.01] cursor-pointer ${selectedIds.includes(wallet.id) ? 'bg-white/[0.02]' : ''}`}
+                       onClick={() => toggleSelectOne(wallet.id)}
                     >
-                       <td className="px-8 py-6">
+                       <td className="px-8 py-6" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-white/10 bg-white/5 checked:bg-[var(--primary)] transition-all cursor-pointer"
+                            checked={selectedIds.includes(wallet.id)}
+                            onChange={() => toggleSelectOne(wallet.id)}
+                          />
+                       </td>
+                       <td className="px-6 py-6">
                           <div className="flex items-center space-x-3">
                              {wallet.coin?.icon_url ? (
                                <img src={wallet.coin.icon_url} alt={wallet.coin?.name} className="w-8 h-8 rounded-full object-contain bg-white/5 p-1" />
@@ -329,14 +442,30 @@ export default function AdminWalletsPage() {
 
                     <div className="space-y-2">
                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Network</label>
-                       <input 
-                         type="text" 
-                         required
-                         className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
-                         placeholder="e.g. TRC-20"
-                         value={bulkForm.network}
-                         onChange={(e) => setBulkForm({...bulkForm, network: e.target.value})}
-                       />
+                       {networksLoading ? (
+                          <div className="flex items-center space-x-2 text-gray-500 py-4">
+                             <Loader2 className="w-4 h-4 animate-spin" />
+                             <span className="text-xs">Loading networks...</span>
+                          </div>
+                       ) : bulkForm.coin_id && coinNetworks.length === 0 ? (
+                          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 space-y-2">
+                             <p className="text-[10px] text-red-400 font-bold">No networks configured for this coin.</p>
+                             <Link href="/admin/coins" className="text-[10px] text-white underline font-black uppercase tracking-widest">Manage Networks</Link>
+                          </div>
+                       ) : (
+                          <select 
+                            required
+                            disabled={!bulkForm.coin_id}
+                            className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 appearance-none focus:outline-none focus:border-[var(--primary)] text-sm font-bold disabled:opacity-50"
+                            value={bulkForm.network}
+                            onChange={(e) => setBulkForm({...bulkForm, network: e.target.value})}
+                          >
+                             <option value="">Choose network</option>
+                             {coinNetworks.map((n: any) => (
+                                <option key={n.id} value={n.name}>{n.name} ({n.label})</option>
+                             ))}
+                          </select>
+                       )}
                     </div>
 
                     <div className="space-y-2">

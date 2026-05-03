@@ -172,6 +172,12 @@ def bulk_create_wallet_addresses(payload: schemas.BulkWalletCreate, db: Session 
         db.refresh(a)
     return created
 
+@router.delete("/wallets/bulk")
+def bulk_delete_wallet_addresses(ids: List[int], db: Session = Depends(get_db)):
+    db.query(models.WalletAddress).filter(models.WalletAddress.id.in_(ids)).delete(synchronize_session=False)
+    db.commit()
+    return {"message": f"Successfully deleted {len(ids)} addresses"}
+
 @router.get("/wallets", response_model=List[schemas.WalletAddressResponse])
 def list_wallets(
     coin_id: Optional[int] = None,

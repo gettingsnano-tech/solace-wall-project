@@ -33,7 +33,7 @@ def get_user_wallets(db: Session = Depends(get_db), user: models.User = Depends(
     """Return all coin+network deposit addresses assigned to this user."""
     return db.query(models.UserWallet).filter(models.UserWallet.user_id == user.id).all()
 
-@router.post("/wallets/generate", response_model=schemas.WalletAddressResponse)
+@router.post("/wallets/generate", response_model=schemas.UserWalletResponse)
 def generate_wallet(coin_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     """Legacy single-coin wallet generation (no network filter). Kept for backward compat."""
     existing = db.query(models.UserWallet).filter(
@@ -41,7 +41,7 @@ def generate_wallet(coin_id: int, db: Session = Depends(get_db), user: models.Us
         models.UserWallet.coin_id == coin_id
     ).first()
     if existing:
-        return db.query(models.WalletAddress).filter(models.WalletAddress.id == existing.address_id).first()
+        return existing
     
     address = db.query(models.WalletAddress).filter(
         models.WalletAddress.coin_id == coin_id,
@@ -55,8 +55,8 @@ def generate_wallet(coin_id: int, db: Session = Depends(get_db), user: models.Us
     user_wallet = models.UserWallet(user_id=user.id, coin_id=coin_id, address_id=address.id)
     db.add(user_wallet)
     db.commit()
-    db.refresh(address)
-    return address
+    db.refresh(user_wallet)
+    return user_wallet
 
 # ─── Deposit Address (idempotent) ─────────────────────────────────────────────
 

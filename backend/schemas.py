@@ -89,6 +89,7 @@ class WalletAddressResponse(WalletAddressBase):
 
 class UserWalletResponse(BaseModel):
     id: int
+    coin_id: int
     coin: CoinResponse
     network: Optional[str] = None
     address: WalletAddressResponse

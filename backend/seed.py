@@ -54,12 +54,27 @@ def seed():
             db.flush() # Get ID
             
             # Create some available wallet addresses for each coin
-            networks = ["Mainnet", "ERC-20", "TRC-20", "BEP-20"]
-            for net in networks:
+            networks_data = [
+                {"name": "Mainnet", "label": "Native Network"},
+                {"name": "ERC-20", "label": "Ethereum Network"},
+                {"name": "TRC-20", "label": "Tron Network"},
+                {"name": "BEP-20", "label": "Binance Smart Chain"},
+            ]
+            
+            for net in networks_data:
+                # Create CoinNetwork record
+                db_net = models.CoinNetwork(
+                    coin_id=db_coin.id,
+                    name=net["name"],
+                    label=net["label"]
+                )
+                db.add(db_net)
+                
+                # Create some available wallet addresses for this network
                 for _ in range(5): # 5 addresses per network per coin
                     addr = models.WalletAddress(
                         coin_id=db_coin.id,
-                        network=net,
+                        network=net["name"],
                         address=generate_random_address(),
                         is_used=False
                     )

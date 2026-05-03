@@ -13,9 +13,14 @@ import {
   Coins,
   Network,
   QrCode,
+  Wallet,
+  Plus,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import toast from "react-hot-toast";
+import QRCode from "qrcode";
 
 type Coin = {
   id: number;
@@ -38,20 +43,17 @@ type DepositAddress = {
   coin: Coin;
 };
 
-const STEP_LABELS = ["Select Coin", "Select Network", "Deposit Address"];
+const STEP_LABELS = ["Select Coin", "Verification", "Deposit Address"];
 
 export default function DepositPage() {
   const [step, setStep] = useState(0);
   const [coins, setCoins] = useState<Coin[]>([]);
-  const [networks, setNetworks] = useState<Network[]>([]);
   const [depositInfo, setDepositInfo] = useState<DepositAddress | null>(null);
 
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<Network | null>(null);
-
   const [loading, setLoading] = useState(false);
   const [coinsLoading, setCoinsLoading] = useState(true);
-  const [networksLoading, setNetworksLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,56 +68,56 @@ export default function DepositPage() {
       .finally(() => setCoinsLoading(false));
   }, []);
 
-  // ── Step 1: load networks when coin is selected
-  useEffect(() => {
-    if (!selectedCoin) return;
-    setNetworksLoading(true);
-    setNetworks([]);
-    api
-      .get(`/api/user/coins/${selectedCoin.id}/networks`)
-      .then((r) => setNetworks(r.data))
-      .catch(() => toast.error("Failed to load networks"))
-      .finally(() => setNetworksLoading(false));
-  }, [selectedCoin]);
-
-  // ── Step 2: fetch / generate deposit address
-  const fetchDepositAddress = async () => {
-    if (!selectedCoin || !selectedNetwork) return;
+  // ── Step 1: Check for existing wallet assignment
+  const checkExistingWallet = async (coin: Coin) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get<DepositAddress>("/api/user/deposit/address", {
-        params: { coin_id: selectedCoin.id, network: selectedNetwork.name },
-      });
-      setDepositInfo(data);
+      const { data: wallets } = await api.get("/api/user/wallets");
+      const existing = wallets.find((w: any) => w.coin_id === coin.id);
+
+      if (existing) {
+        setDepositInfo({
+          address: existing.address.address,
+          network: existing.network || existing.address.network,
+          coin: coin
+        });
+        setStep(2);
+      } else {
+        setStep(1); // Show "No Wallet" step
+      }
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.detail ||
-        "No deposit address available. Contact support.";
-      setError(msg);
+      toast.error("Failed to check wallet status");
     } finally {
       setLoading(false);
     }
   };
 
+  // ── QR code generation
   useEffect(() => {
-    if (step === 2) {
-      fetchDepositAddress();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
-
-  // ── QR code generation (client-side, canvas)
-  useEffect(() => {
-    if (step !== 2 || !depositInfo?.address || !qrRef.current) return;
-    import("qrcode").then((QRCode) => {
-      QRCode.toCanvas(qrRef.current!, depositInfo.address, {
-        width: 200,
-        margin: 2,
-        color: { dark: "#FFFFFF", light: "#00000000" },
-      });
+    if (step !== 2 || !depositInfo?.address) return;
+    
+    QRCode.toDataURL(depositInfo.address, {
+      width: 400,
+      margin: 2,
+      color: { dark: "#FFFFFF", light: "#00000000" },
+    }).then(url => {
+        setQrCodeUrl(url);
+    }).catch(() => {
+        toast.error("Failed to generate QR code");
     });
   }, [depositInfo, step]);
+
+  const handleDownload = () => {
+    if (!qrCodeUrl) return;
+    const link = document.createElement("a");
+    link.href = qrCodeUrl;
+    link.download = `${selectedCoin?.symbol || 'coin'}_deposit_qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("QR Code downloaded!");
+  };
 
   const handleCopy = () => {
     if (!depositInfo?.address) return;
@@ -127,9 +129,11 @@ export default function DepositPage() {
 
   const goBack = () => {
     setError(null);
-    if (step === 1) setSelectedCoin(null);
-    if (step === 2) setSelectedNetwork(null);
-    setStep((s) => Math.max(0, s - 1));
+    setDepositInfo(null);
+    if (step === 1 || step === 2) {
+       setSelectedCoin(null);
+       setStep(0);
+    }
   };
 
   return (
@@ -194,10 +198,6 @@ export default function DepositPage() {
               <div className="flex justify-center py-20">
                 <Loader2 className="w-10 h-10 animate-spin text-[var(--primary)]" />
               </div>
-            ) : coins.length === 0 ? (
-              <div className="glass-card rounded-[2rem] p-12 text-center text-gray-500">
-                No coins available. Admin will approve coins for the system deposit.
-              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {coins.map((coin, idx) => (
@@ -208,28 +208,35 @@ export default function DepositPage() {
                     transition={{ delay: idx * 0.04 }}
                     onClick={() => {
                       setSelectedCoin(coin);
-                      setStep(1);
+                      checkExistingWallet(coin);
                     }}
-                    className="glass-card rounded-[2rem] p-6 flex flex-col items-center space-y-3 hover:border-[var(--primary)]/40 hover:bg-white/[0.07] transition-all group"
+                    disabled={loading}
+                    className="glass-card rounded-[2rem] p-6 flex flex-col items-center space-y-3 hover:border-[var(--primary)]/40 hover:bg-white/[0.07] transition-all group disabled:opacity-50"
                   >
-                    {coin.icon_url ? (
-                      <img
-                        src={coin.icon_url}
-                        alt={coin.name}
-                        className="w-12 h-12 object-contain rounded-xl"
-                      />
+                    {loading && selectedCoin?.id === coin.id ? (
+                        <Loader2 className="w-12 h-12 animate-spin text-[var(--primary)]" />
                     ) : (
-                      <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center text-[var(--primary)]">
-                        <Coins className="w-6 h-6" />
-                      </div>
+                        <>
+                        {coin.icon_url ? (
+                          <img
+                            src={coin.icon_url}
+                            alt={coin.name}
+                            className="w-12 h-12 object-contain rounded-xl"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-xl bg-white/[0.05] flex items-center justify-center text-[var(--primary)]">
+                            <Coins className="w-6 h-6" />
+                          </div>
+                        )}
+                        <div className="text-center">
+                          <p className="font-black text-sm">{coin.name}</p>
+                          <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">
+                            {coin.symbol}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-[var(--primary)] transition-colors" />
+                        </>
                     )}
-                    <div className="text-center">
-                      <p className="font-black text-sm">{coin.name}</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">
-                        {coin.symbol}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-[var(--primary)] transition-colors" />
                   </motion.button>
                 ))}
               </div>
@@ -237,7 +244,7 @@ export default function DepositPage() {
           </motion.div>
         )}
 
-        {/* ── STEP 1: Select Network */}
+        {/* ── STEP 1: No Wallet Found (Redirect) */}
         {step === 1 && (
           <motion.div
             key="step1"
@@ -247,67 +254,28 @@ export default function DepositPage() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {/* Coin badge */}
-            <div className="flex items-center space-x-3 p-4 glass-card rounded-2xl">
-              {selectedCoin?.icon_url ? (
-                <img
-                  src={selectedCoin.icon_url}
-                  alt={selectedCoin.name}
-                  className="w-10 h-10 object-contain rounded-xl"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-                  <Coins className="w-5 h-5 text-[var(--primary)]" />
+            <div className="glass-card rounded-[2rem] p-10 text-center space-y-6">
+                <div className="w-20 h-20 bg-[var(--primary)]/10 rounded-full flex items-center justify-center mx-auto text-[var(--primary)]">
+                    <Wallet className="w-10 h-10" />
                 </div>
-              )}
-              <div>
-                <p className="font-black text-sm">{selectedCoin?.name}</p>
-                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black">
-                  {selectedCoin?.symbol}
-                </p>
-              </div>
+                <div className="space-y-2">
+                    <h3 className="text-xl font-black">Address Required</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
+                        You haven't generated a deposit address for <span className="text-white font-bold">{selectedCoin?.name}</span> yet. Please generate one to continue.
+                    </p>
+                </div>
+                <Link 
+                    href="/dashboard/wallet"
+                    className="btn-primary py-4 px-10 rounded-2xl inline-flex items-center space-x-3 group"
+                >
+                    <span>Generate Wallet Now</span>
+                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                </Link>
             </div>
-
-            {networksLoading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-10 h-10 animate-spin text-[var(--primary)]" />
-              </div>
-            ) : networks.length === 0 ? (
-              <div className="glass-card rounded-[2rem] p-12 text-center text-gray-500">
-                No networks configured for this coin yet. Contact an admin.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {networks.map((net, idx) => (
-                  <motion.button
-                    key={net.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    onClick={() => {
-                      setSelectedNetwork(net);
-                      setStep(2);
-                    }}
-                    className="w-full glass-card rounded-[1.5rem] p-5 flex items-center justify-between hover:border-[var(--primary)]/40 hover:bg-white/[0.07] transition-all group"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center">
-                        <Network className="w-5 h-5 text-[var(--primary)]" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-black text-sm">{net.name}</p>
-                        <p className="text-xs text-gray-500">{net.label}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-[var(--primary)] transition-colors" />
-                  </motion.button>
-                ))}
-              </div>
-            )}
 
             <button
               onClick={goBack}
-              className="flex items-center space-x-2 text-gray-500 hover:text-white transition-colors text-sm font-bold"
+              className="flex items-center space-x-2 text-gray-500 hover:text-white transition-colors text-sm font-bold mx-auto"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>Back to Coins</span>
@@ -315,8 +283,8 @@ export default function DepositPage() {
           </motion.div>
         )}
 
-        {/* ── STEP 2: Deposit Address */}
-        {step === 2 && (
+        {/* ── STEP 2: Deposit Address Display */}
+        {step === 2 && depositInfo && (
           <motion.div
             key="step2"
             initial={{ opacity: 0, x: 30 }}
@@ -325,27 +293,7 @@ export default function DepositPage() {
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <Loader2 className="w-12 h-12 animate-spin text-[var(--primary)]" />
-                <p className="text-gray-500 text-sm font-bold">Assigning your address…</p>
-              </div>
-            ) : error ? (
-              <div className="glass-card rounded-[2rem] p-10 text-center space-y-4">
-                <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
-                  <AlertTriangle className="w-7 h-7 text-red-400" />
-                </div>
-                <p className="text-red-400 font-bold">{error}</p>
-                <button
-                  onClick={fetchDepositAddress}
-                  className="flex items-center space-x-2 mx-auto text-sm font-bold text-gray-400 hover:text-white transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Try Again</span>
-                </button>
-              </div>
-            ) : depositInfo ? (
-              <div className="space-y-6">
+            <div className="space-y-6">
                 {/* Coin + Network info row */}
                 <div className="flex items-center space-x-4">
                   {depositInfo.coin.icon_url ? (
@@ -362,7 +310,7 @@ export default function DepositPage() {
                   <div>
                     <p className="text-xl font-black">{depositInfo.coin.name}</p>
                     <span className="inline-block bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg mt-1">
-                      {depositInfo.network}
+                      {depositInfo.network} Network
                     </span>
                   </div>
                 </div>
@@ -370,9 +318,33 @@ export default function DepositPage() {
                 {/* QR + Address card */}
                 <div className="glass-card rounded-[2rem] p-8 flex flex-col items-center space-y-6">
                   {/* QR Code */}
-                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10">
-                    <canvas ref={qrRef} className="rounded-xl" />
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 w-48 h-48 flex items-center justify-center">
+                    {qrCodeUrl ? (
+                      <div className="relative group/qr w-full h-full">
+                        <img src={qrCodeUrl} alt="Deposit QR Code" className="w-full h-full rounded-xl" />
+                        <button 
+                          onClick={handleDownload}
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover/qr:opacity-100 transition-opacity rounded-xl backdrop-blur-[2px]"
+                        >
+                          <div className="bg-[var(--primary)] text-[var(--background)] p-3 rounded-full scale-90 group-hover/qr:scale-100 transition-transform">
+                            <Download className="w-5 h-5" />
+                          </div>
+                        </button>
+                      </div>
+                    ) : (
+                      <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
+                    )}
                   </div>
+                  
+                  {qrCodeUrl && (
+                    <button 
+                      onClick={handleDownload}
+                      className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-[var(--primary)] transition-colors"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>Download QR Image</span>
+                    </button>
+                  )}
 
                   {/* Address */}
                   <div className="w-full space-y-2">
@@ -411,15 +383,14 @@ export default function DepositPage() {
                     network to this address. Sending any other asset or using the wrong network will result in <strong>permanent loss of funds</strong>.
                   </p>
                 </div>
-              </div>
-            ) : null}
+            </div>
 
             <button
               onClick={goBack}
               className="flex items-center space-x-2 text-gray-500 hover:text-white transition-colors text-sm font-bold"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Back to Networks</span>
+              <span>Back to Coins</span>
             </button>
           </motion.div>
         )}

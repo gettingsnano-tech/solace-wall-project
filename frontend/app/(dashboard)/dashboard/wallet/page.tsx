@@ -123,10 +123,10 @@ export default function WalletPage() {
                     <label className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Wallet Address</label>
                     <div className="bg-[#0A0E1A] border border-white/10 p-3 lg:p-4 rounded-xl lg:rounded-2xl flex items-center justify-between">
                       <span className="font-mono text-[10px] lg:text-sm text-gray-400 truncate mr-4">
-                        {wallet.address.slice(0, 8)}...{wallet.address.slice(-8)}
+                        {wallet.address.address.slice(0, 8)}...{wallet.address.address.slice(-8)}
                       </span>
                       <button
-                        onClick={() => copyToClipboard(wallet.address, wallet.id)}
+                        onClick={() => copyToClipboard(wallet.address.address, wallet.id)}
                         className="p-2 lg:p-2.5 bg-white/[0.05] rounded-xl hover:bg-[var(--primary)] hover:text-[var(--background)] transition-all shrink-0"
                       >
                         {copied === wallet.id ? <Check className="w-3 h-3 lg:w-4 lg:h-4" /> : <Copy className="w-3 h-3 lg:w-4 lg:h-4" />}

@@ -82,7 +82,7 @@ class WalletAddress(Base):
     __tablename__ = "wallet_addresses"
     id = Column(Integer, primary_key=True, index=True)
     coin_id = Column(Integer, ForeignKey("coins.id"))
-    network = Column(String)
+    network = Column(String, nullable=False)
     address = Column(String, unique=True)
     is_used = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
