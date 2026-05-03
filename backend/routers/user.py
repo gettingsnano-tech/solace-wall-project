@@ -7,6 +7,7 @@ from typing import List, Optional
 from datetime import datetime
 from utils.email import send_withdrawal_email
 import pyotp
+from config import settings
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
@@ -204,7 +205,7 @@ def generate_2fa_secret(db: Session = Depends(get_db), user: models.User = Depen
     db.commit()
     
     # Generate QR URI
-    qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(name=user.email, issuer_name="Solace")
+    qr_uri = pyotp.totp.TOTP(secret).provisioning_uri(name=user.email, issuer_name=settings.ISSUER_NAME)
     
     return {"secret": secret, "qr_uri": qr_uri}
 

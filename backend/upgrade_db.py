@@ -5,15 +5,22 @@ def upgrade_db():
     c = conn.cursor()
     
     # Add columns to users table
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 0")
-        c.execute("ALTER TABLE users ADD COLUMN two_factor_secret VARCHAR")
-        c.execute("ALTER TABLE users ADD COLUMN email_notif_login BOOLEAN DEFAULT 1")
-        c.execute("ALTER TABLE users ADD COLUMN email_notif_deposit BOOLEAN DEFAULT 1")
-        c.execute("ALTER TABLE users ADD COLUMN email_notif_withdrawal BOOLEAN DEFAULT 1")
-        print("Added columns to users table")
-    except sqlite3.OperationalError as e:
-        print(f"Columns might already exist: {e}")
+    columns_to_add = [
+        ("two_factor_enabled", "BOOLEAN DEFAULT 0"),
+        ("two_factor_secret", "VARCHAR"),
+        ("email_notif_login", "BOOLEAN DEFAULT 1"),
+        ("email_notif_deposit", "BOOLEAN DEFAULT 1"),
+        ("email_notif_withdrawal", "BOOLEAN DEFAULT 1"),
+        ("is_verified", "BOOLEAN DEFAULT 0"),
+        ("verification_token", "VARCHAR")
+    ]
+    
+    for col_name, col_type in columns_to_add:
+        try:
+            c.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+            print(f"Added column {col_name} to users table")
+        except sqlite3.OperationalError:
+            print(f"Column {col_name} already exists")
         
     # Create notifications table
     c.execute("""

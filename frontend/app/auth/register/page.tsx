@@ -34,7 +34,7 @@ export default function RegisterPage() {
         full_name: formData.full_name,
         password: formData.password
       });
-      toast.success("Account created! Please log in.");
+      toast.success("Account created! Please check your email to verify your account.");
       router.push("/auth/login");
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Registration failed.");

@@ -8,10 +8,11 @@ import os
 import shutil
 from datetime import datetime
 from typing import List, Optional
+from config import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = settings.UPLOAD_DIR
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
@@ -29,7 +30,7 @@ async def create_coin(
         file_path = os.path.join(UPLOAD_DIR, f"{symbol}_{icon.filename}")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(icon.file, buffer)
-        icon_url = f"/uploads/{symbol}_{icon.filename}"
+        icon_url = f"/{settings.UPLOAD_DIR}/{symbol}_{icon.filename}"
     
     new_coin = models.Coin(name=name, symbol=symbol, icon_url=icon_url)
     db.add(new_coin)

@@ -14,7 +14,8 @@ def seed():
             email="admin@corecapital.com",
             full_name="System Administrator",
             hashed_password=get_password_hash("Admin@1234"),
-            role="admin"
+            role="admin",
+            is_verified=True
         )
         db.add(admin_user)
         print("Admin user created.")
@@ -31,7 +32,8 @@ def seed():
                 email=u["email"],
                 full_name=u["name"],
                 hashed_password=get_password_hash("User@1234"),
-                role="user"
+                role="user",
+                is_verified=True
             )
             db.add(user)
     

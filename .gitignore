@@ -31,4 +31,7 @@ Thumbs.db
 
 # Databases
 *.sqlite3
+*.db
+backend/core_capital.db
 backend/corecapital.db
+uploads/

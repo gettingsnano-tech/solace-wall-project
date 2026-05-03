@@ -5,32 +5,26 @@ import models
 from database import engine
 from routers import auth, admin, user, public
 import os
+from config import settings
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="CORE CAPITAL COLLECTION API")
+app = FastAPI(title=settings.APP_NAME)
 
 # Configure CORS
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://0.0.0.0:3000",
-    "*",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Static files for coin icons
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+if not os.path.exists(settings.UPLOAD_DIR):
+    os.makedirs(settings.UPLOAD_DIR)
+app.mount(f"/{settings.UPLOAD_DIR}", StaticFiles(directory=settings.UPLOAD_DIR), name=settings.UPLOAD_DIR)
 
 # Include routers
 app.include_router(auth.router)

@@ -25,6 +25,8 @@ class User(Base):
     full_name = Column(String)
     role = Column(String, default=UserRole.USER)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    verification_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     two_factor_enabled = Column(Boolean, default=False)
