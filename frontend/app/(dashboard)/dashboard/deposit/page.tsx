@@ -133,49 +133,46 @@ export default function DepositPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-10">
+    <div className="max-w-2xl mx-auto space-y-6 lg:space-y-10 pb-10">
       {/* Page header */}
-      <div className="flex items-center space-x-4">
-        <div className="w-12 h-12 bg-white/[0.05] rounded-2xl flex items-center justify-center text-[var(--primary)]">
-          <Coins className="w-6 h-6" />
+      <div className="flex items-center space-x-3 lg:space-x-4">
+        <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white/[0.05] rounded-xl lg:rounded-2xl flex items-center justify-center text-[var(--primary)] shrink-0">
+          <Coins className="w-5 h-5 lg:w-6 lg:h-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-black mb-0.5">
+          <h1 className="text-2xl lg:text-3xl font-black mb-0.5">
             Deposit <span className="text-gradient">Crypto</span>
           </h1>
-          <p className="text-gray-400 text-sm">Receive funds to your Solace account.</p>
+          <p className="text-gray-400 text-xs lg:text-sm">Receive funds to your Core Capital account.</p>
         </div>
       </div>
 
       {/* Stepper */}
-      <div className="flex items-center">
+      <div className="flex items-center px-2">
         {STEP_LABELS.map((label, i) => (
           <React.Fragment key={i}>
             <div className="flex flex-col items-center">
               <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 ${
-                  i < step
+                className={`w-7 h-7 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-[10px] lg:text-xs font-black transition-all duration-300 ${i < step
                     ? "bg-[var(--secondary)] text-black"
                     : i === step
-                    ? "bg-[var(--primary)] text-black ring-4 ring-[var(--primary)]/20"
-                    : "bg-white/[0.05] text-gray-500"
-                }`}
+                      ? "bg-[var(--primary)] text-black ring-4 ring-[var(--primary)]/20"
+                      : "bg-white/[0.05] text-gray-500"
+                  }`}
               >
-                {i < step ? <Check className="w-4 h-4" /> : i + 1}
+                {i < step ? <Check className="w-3 h-3 lg:w-4 lg:h-4" /> : i + 1}
               </div>
               <span
-                className={`mt-2 text-[10px] font-black uppercase tracking-wider ${
-                  i === step ? "text-white" : "text-gray-600"
-                }`}
+                className={`mt-2 text-[8px] lg:text-[10px] font-black uppercase tracking-wider hidden sm:block ${i === step ? "text-white" : "text-gray-600"
+                  }`}
               >
                 {label}
               </span>
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-2 mb-5 rounded-full transition-all duration-300 ${
-                  i < step ? "bg-[var(--secondary)]" : "bg-white/[0.05]"
-                }`}
+                className={`flex-1 h-0.5 mx-1 lg:mx-2 mb-0 sm:mb-5 rounded-full transition-all duration-300 ${i < step ? "bg-[var(--secondary)]" : "bg-white/[0.05]"
+                  }`}
               />
             )}
           </React.Fragment>
@@ -199,7 +196,7 @@ export default function DepositPage() {
               </div>
             ) : coins.length === 0 ? (
               <div className="glass-card rounded-[2rem] p-12 text-center text-gray-500">
-                No coins available. Ask an admin to add coins.
+                No coins available. Admin will approve coins for the system deposit.
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -217,7 +214,7 @@ export default function DepositPage() {
                   >
                     {coin.icon_url ? (
                       <img
-                        src={`http://localhost:8000${coin.icon_url}`}
+                        src={coin.icon_url}
                         alt={coin.name}
                         className="w-12 h-12 object-contain rounded-xl"
                       />
@@ -254,7 +251,7 @@ export default function DepositPage() {
             <div className="flex items-center space-x-3 p-4 glass-card rounded-2xl">
               {selectedCoin?.icon_url ? (
                 <img
-                  src={`http://localhost:8000${selectedCoin.icon_url}`}
+                  src={selectedCoin.icon_url}
                   alt={selectedCoin.name}
                   className="w-10 h-10 object-contain rounded-xl"
                 />
@@ -353,7 +350,7 @@ export default function DepositPage() {
                 <div className="flex items-center space-x-4">
                   {depositInfo.coin.icon_url ? (
                     <img
-                      src={`http://localhost:8000${depositInfo.coin.icon_url}`}
+                      src={depositInfo.coin.icon_url}
                       alt={depositInfo.coin.name}
                       className="w-12 h-12 object-contain rounded-xl"
                     />
@@ -388,11 +385,10 @@ export default function DepositPage() {
                       </p>
                       <button
                         onClick={handleCopy}
-                        className={`shrink-0 transition-all duration-200 p-2 rounded-xl ${
-                          copied
+                        className={`shrink-0 transition-all duration-200 p-2 rounded-xl ${copied
                             ? "bg-[var(--secondary)]/20 text-[var(--secondary)]"
                             : "bg-white/[0.05] text-gray-400 hover:text-white hover:bg-white/[0.1]"
-                        }`}
+                          }`}
                       >
                         {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                       </button>

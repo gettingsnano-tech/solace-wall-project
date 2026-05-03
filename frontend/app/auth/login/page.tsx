@@ -11,10 +11,21 @@ import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
-  const setUser = useAuthStore(state => state.setUser);
+  const { setUser, fetchMe } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+
+  React.useEffect(() => {
+    const checkSession = async () => {
+      const currentUser = await fetchMe();
+      if (currentUser) {
+        if (currentUser.role === "admin") router.push("/admin");
+        else router.push("/dashboard");
+      }
+    };
+    checkSession();
+  }, [fetchMe, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +36,15 @@ export default function LoginPage() {
       
       // Fetch user profile after login
       const profileRes = await api.get("/api/auth/me");
-      setUser(profileRes.data);
+      const userData = profileRes.data;
+      setUser(userData);
       
-      if (profileRes.data.role === "admin") {
+      if (!userData.is_verified) {
+        router.push("/auth/verify-required");
+        return;
+      }
+
+      if (userData.role === "admin") {
         router.push("/admin");
       } else {
         router.push("/dashboard");
@@ -77,7 +94,7 @@ export default function LoginPage() {
           <div className="space-y-2">
              <div className="flex justify-between items-center">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
-                <Link href="#" className="text-xs font-bold text-[var(--primary)] hover:underline">Forgot?</Link>
+                <Link href="/auth/forgot-password" className="text-xs font-bold text-[var(--primary)] hover:underline">Forgot?</Link>
              </div>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />

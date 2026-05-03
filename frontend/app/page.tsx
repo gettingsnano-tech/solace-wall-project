@@ -87,7 +87,7 @@ const features = [
   {
     icon: Zap,
     title: "Instant Settlement Engine",
-    desc: "Execute transfers and conversions with near-zero latency. Core Capital's processing infrastructure operates 24/7 with no downtime, no delays.",
+    desc: "Execute transfers and conversions with near-zero latency. Core Capital Digital Currency's processing infrastructure operates 24/7 with no downtime, no delays.",
   },
   {
     icon: Globe,
@@ -120,7 +120,7 @@ const steps = [
   {
     n: "02",
     title: "Fund Your Wallet",
-    desc: "Deposit your digital coin directly into your Core Capital vault. Transfers are processed instantly with full encryption from point of origin.",
+    desc: "Deposit your digital coin directly into your Core Capital Digital Currency vault. Transfers are processed instantly with full encryption from point of origin.",
   },
   {
     n: "03",
@@ -145,7 +145,7 @@ const securityPillars = [
 
 const testimonials = [
   {
-    quote: "Core Capital gave me the confidence to consolidate my entire digital holdings in one place. The security architecture is unlike anything I've seen in the retail wallet space.",
+    quote: "Core Capital Digital Currency gave me the confidence to consolidate my entire digital holdings in one place. The security architecture is unlike anything I've seen in the retail wallet space.",
     name: "Adebayo O.",
     role: "Private Investor, Lagos",
   },
@@ -155,14 +155,34 @@ const testimonials = [
     role: "Asset Manager, Nairobi",
   },
   {
-    quote: "I've used five different wallets. None of them felt like they were built for people who actually have assets to protect. Core Capital does.",
+    quote: "I've used five different wallets. None of them felt like they were built for people who actually have assets to protect. Core Capital Digital Currency does.",
     name: "James F.",
     role: "Fintech Entrepreneur, London",
   },
 ];
 
+import api from "@/lib/api";
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const [stats, setStats] = useState({
+    users: 180000,
+    assets: 2.4,
+    uptime: "99.99%",
+    encryption: "256-bit"
+  });
+
+  useEffect(() => {
+    api.get("/api/public/stats").then(res => {
+      setStats({
+        users: res.data.users,
+        assets: res.data.assets / 1e9, // Billion display
+        uptime: res.data.uptime,
+        encryption: res.data.encryption
+      });
+    }).catch(() => {});
+  }, []);
+
   return (
     <>
       <Head>
@@ -171,7 +191,7 @@ export default function Home() {
           name="description"
           content="Core Capital Digital Currency is the institutional-grade digital wallet designed for investors who demand security, speed, and sovereignty over their digital assets."
         />
-        <meta name="keywords" content="digital wallet, crypto wallet, institutional crypto, secure digital assets, Core Capital, digital currency, multi-currency wallet" />
+        <meta name="keywords" content="digital wallet, crypto wallet, institutional crypto, secure digital assets, Core Capital Digital Currency, digital currency, multi-currency wallet" />
         <meta property="og:title" content="Core Capital Digital Currency | Secure Digital Wallet for Serious Investors" />
         <meta property="og:description" content="Institutional-grade digital wallet for investors who demand security, speed, and sovereignty." />
         <meta property="og:type" content="website" />
@@ -287,13 +307,13 @@ export default function Home() {
         {/* ── SECTION 2: TRUST STATS ────────────────────────────────────── */}
         <section id="trust-bar" aria-labelledby="stats-heading" className="py-16 border-y border-white/[0.05] bg-white/[0.015]">
           <div className="container mx-auto px-6">
-            <h2 id="stats-heading" className="sr-only">Core Capital by the Numbers</h2>
+            <h2 id="stats-heading" className="sr-only">Core Capital Digital Currency by the Numbers</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
               {[
-                { value: 2.4, suffix: "B+", prefix: "$", label: "Assets Secured", decimals: 1 },
-                { value: 180000, suffix: "+", prefix: "", label: "Active Wallet Holders", decimals: 0 },
-                { value: 99.99, suffix: "%", prefix: "", label: "Platform Uptime", decimals: 2 },
-                { value: 256, suffix: "-bit", prefix: "", label: "Military-Grade Encryption", decimals: 0 },
+                { value: stats.assets, suffix: "B+", prefix: "$", label: "Assets Secured", decimals: 1 },
+                { value: stats.users, suffix: "+", prefix: "", label: "Active Wallet Holders", decimals: 0 },
+                { value: parseFloat(stats.uptime), suffix: "%", prefix: "", label: "Platform Uptime", decimals: 2 },
+                { value: parseFloat(stats.encryption), suffix: "-bit", prefix: "", label: "Military-Grade Encryption", decimals: 0 },
               ].map((stat, i) => (
                 <Reveal key={i} delay={i * 0.1} className="text-center">
                   <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
@@ -330,7 +350,7 @@ export default function Home() {
                     Core Capital Digital Currency was built on one conviction: that serious investors deserve serious infrastructure. We don't cut corners on compliance, custody, or security architecture.
                   </p>
                   <p>
-                    Whether you're storing a growing portfolio or consolidating digital assets across currencies, Core Capital gives you a single, sovereign interface — built with the precision of institutional banking and the agility of next-generation fintech.
+                    Whether you're storing a growing portfolio or consolidating digital assets across currencies, Core Capital Digital Currency gives you a single, sovereign interface — built with the precision of institutional banking and the agility of next-generation fintech.
                   </p>
                   <p className="text-white font-bold text-lg">
                     This is where capital meets conviction.
@@ -378,7 +398,7 @@ export default function Home() {
                 <span className="text-gradient">Designed for Performance.</span>
               </h2>
               <p className="text-gray-400 max-w-xl mx-auto">
-                Every feature inside Core Capital is engineered around one principle — your assets are yours, always.
+                Every feature inside Core Capital Digital Currency is engineered around one principle — your assets are yours, always.
               </p>
             </Reveal>
 
@@ -413,7 +433,7 @@ export default function Home() {
                 <span className="text-gradient">in Minutes</span>
               </h2>
               <p className="text-gray-400 max-w-xl mx-auto">
-                Getting started with Core Capital is frictionless. Security doesn't have to mean complexity.
+                Getting started with Core Capital Digital Currency is frictionless. Security doesn't have to mean complexity.
               </p>
             </Reveal>
 
@@ -464,7 +484,7 @@ export default function Home() {
                 <span className="text-gradient">It's the Foundation.</span>
               </h2>
               <p className="text-gray-400 max-w-2xl mx-auto">
-                Core Capital was engineered from the ground up with a zero-trust security architecture. We apply the same custody standards used by institutional asset managers — because your digital wealth deserves nothing less.
+                Core Capital Digital Currency was engineered from the ground up with a zero-trust security architecture. We apply the same custody standards used by institutional asset managers — because your digital wealth deserves nothing less.
               </p>
             </Reveal>
 
@@ -498,7 +518,7 @@ export default function Home() {
                 <span className="text-gradient">Move Capital Seriously</span>
               </h2>
               <p className="text-gray-400 max-w-xl mx-auto">
-                From individual holders to portfolio managers — Core Capital is where disciplined investors secure their digital future.
+                From individual holders to portfolio managers — Core Capital Digital Currency is where disciplined investors secure their digital future.
               </p>
             </Reveal>
 
@@ -552,7 +572,7 @@ export default function Home() {
                     className="btn-primary px-12 py-4 text-base font-black tracking-wide relative group"
                   >
                     <span className="absolute inset-0 rounded-full bg-[var(--color-primary)] blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
-                    Open Your Core Capital Wallet
+                    Open Your Core Capital Digital Currency Wallet
                   </Link>
                   <Link
                     href="/support"

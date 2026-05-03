@@ -34,4 +34,4 @@ app.include_router(public.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to CORE CAPITAL COLLECTION API", "status": "operational"}
+    return {"message": f"Welcome to {settings.APP_NAME} API", "status": "operational"}

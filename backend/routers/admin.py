@@ -4,17 +4,73 @@ from database import get_db
 import models, schemas
 from dependencies import get_admin_user
 from utils.simulate import generate_tx_hash
+from utils.email import send_deposit_email
 import os
 import shutil
 from datetime import datetime
 from typing import List, Optional
 from config import settings
+from sqlalchemy import func
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
 UPLOAD_DIR = settings.UPLOAD_DIR
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
+
+# ─── Statistics ──────────────────────────────────────────────────────────────
+
+@router.get("/stats")
+def get_admin_stats(db: Session = Depends(get_db)):
+    total_users = db.query(models.User).filter(models.User.role == "user").count()
+    total_coins = db.query(models.Coin).count()
+    pending_withdrawals = db.query(models.WithdrawalRequest).filter(models.WithdrawalRequest.status == "pending").count()
+    
+    # Sum of all approved deposit transactions
+    total_deposits = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.type == "deposit",
+        models.Transaction.status == "approved"
+    ).scalar() or 0
+    
+    settings = db.query(models.PlatformSettings).first()
+    if not settings:
+        settings = models.PlatformSettings()
+
+    return {
+        "users": total_users,
+        "users_offset": settings.users_offset,
+        "coins": total_coins,
+        "pending_withdrawals": pending_withdrawals,
+        "pending_withdrawals_offset": settings.withdrawals_offset,
+        "total_deposits": float(total_deposits),
+        "total_deposits_offset": float(settings.deposits_offset)
+    }
+
+# ─── Platform Settings ────────────────────────────────────────────────────────
+
+@router.get("/settings", response_model=schemas.PlatformSettingsResponse)
+def get_platform_settings(db: Session = Depends(get_db)):
+    settings = db.query(models.PlatformSettings).first()
+    if not settings:
+        settings = models.PlatformSettings()
+        db.add(settings)
+        db.commit()
+        db.refresh(settings)
+    return settings
+
+@router.put("/settings", response_model=schemas.PlatformSettingsResponse)
+def update_platform_settings(update: schemas.PlatformSettingsUpdate, db: Session = Depends(get_db)):
+    settings = db.query(models.PlatformSettings).first()
+    if not settings:
+        settings = models.PlatformSettings()
+        db.add(settings)
+    
+    for field, value in update.model_dump(exclude_unset=True).items():
+        setattr(settings, field, value)
+    
+    db.commit()
+    db.refresh(settings)
+    return settings
 
 # ─── Coins ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +97,19 @@ async def create_coin(
 @router.get("/coins", response_model=List[schemas.CoinResponse])
 def list_coins(db: Session = Depends(get_db)):
     return db.query(models.Coin).all()
+
+@router.patch("/coins/{coin_id}", response_model=schemas.CoinResponse)
+def update_coin(coin_id: int, update: dict, db: Session = Depends(get_db)):
+    coin = db.query(models.Coin).filter(models.Coin.id == coin_id).first()
+    if not coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+    if "icon_url" in update and update["icon_url"]:
+        coin.icon_url = update["icon_url"]
+    if "is_active" in update:
+        coin.is_active = update["is_active"]
+    db.commit()
+    db.refresh(coin)
+    return coin
 
 # ─── Coin Networks ────────────────────────────────────────────────────────────
 
@@ -196,7 +265,11 @@ def topup_user(topup: schemas.TopUpRequest, db: Session = Depends(get_db)):
     
     db.commit()
     
-    # Optional: Send email if user.email_notif_deposit is True
+    # Send email if enabled
+    user = db.query(models.User).filter(models.User.id == topup.user_id).first()
+    if user and user.email_notif_deposit:
+        coin = db.query(models.Coin).filter(models.Coin.id == topup.coin_id).first()
+        send_deposit_email(user.email, float(topup.amount), coin.symbol if coin else "Coins")
     
     return {"message": "Top-up successful"}
 
@@ -254,3 +327,98 @@ def reject_withdrawal(id: int, db: Session = Depends(get_db), admin: models.User
     request.reviewed_by = admin.id
     db.commit()
     return {"message": "Withdrawal rejected"}
+
+# ─── User Details (Extended) ──────────────────────────────────────────────────
+
+@router.get("/users/{user_id}/balances", response_model=List[schemas.BalanceResponse])
+def get_user_balances_admin(user_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Balance).filter(models.Balance.user_id == user_id).all()
+
+@router.get("/users/{user_id}/wallets", response_model=List[schemas.UserWalletResponse])
+def get_user_wallets_admin(user_id: int, db: Session = Depends(get_db)):
+    return db.query(models.UserWallet).filter(models.UserWallet.user_id == user_id).all()
+
+@router.get("/users/{user_id}/transactions", response_model=List[schemas.TransactionResponse])
+def get_user_transactions_admin(user_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Transaction).filter(models.Transaction.user_id == user_id).order_by(models.Transaction.timestamp.desc()).all()
+
+@router.post("/users/{user_id}/disable")
+def disable_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = False
+    db.commit()
+    return {"message": "User disabled"}
+
+@router.post("/users/{user_id}/enable")
+def enable_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_active = True
+    db.commit()
+    return {"message": "User enabled"}
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted"}
+
+@router.post("/users/{user_id}/reset-password")
+def reset_user_password(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from utils.auth import get_password_hash
+    # Reset to default password
+    user.hashed_password = get_password_hash("User@1234")
+    db.commit()
+    return {"message": "Password reset to default (User@1234)"}
+
+# ─── Exchanges ──────────────────────────────────────────────────────────────
+
+@router.get("/exchanges", response_model=List[schemas.ExchangeResponse])
+def list_exchanges_admin(db: Session = Depends(get_db)):
+    return db.query(models.Exchange).all()
+
+@router.post("/exchanges", response_model=schemas.ExchangeResponse)
+def create_exchange(exchange: schemas.ExchangeCreate, db: Session = Depends(get_db)):
+    new_exchange = models.Exchange(**exchange.model_dump())
+    db.add(new_exchange)
+    db.commit()
+    db.refresh(new_exchange)
+    return new_exchange
+
+@router.patch("/exchanges/{id}", response_model=schemas.ExchangeResponse)
+def update_exchange(id: int, update: schemas.ExchangeUpdate, db: Session = Depends(get_db)):
+    exchange = db.query(models.Exchange).filter(models.Exchange.id == id).first()
+    if not exchange:
+        raise HTTPException(status_code=404, detail="Exchange not found")
+    
+    for field, value in update.model_dump(exclude_unset=True).items():
+        setattr(exchange, field, value)
+    
+    db.commit()
+    db.refresh(exchange)
+    return exchange
+
+@router.delete("/exchanges/{id}")
+def delete_exchange(id: int, db: Session = Depends(get_db)):
+    exchange = db.query(models.Exchange).filter(models.Exchange.id == id).first()
+    if not exchange:
+        raise HTTPException(status_code=404, detail="Exchange not found")
+    db.delete(exchange)
+    db.commit()
+    return {"message": "Exchange deleted"}
+
+# ─── Swap History ───────────────────────────────────────────────────────────
+
+@router.get("/swaps", response_model=List[schemas.SwapResponse])
+def list_all_swaps(db: Session = Depends(get_db)):
+    return db.query(models.SwapHistory).order_by(models.SwapHistory.created_at.desc()).all()

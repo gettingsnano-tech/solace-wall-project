@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Core Capital Wall - Frontend
+
+This is the frontend for the Core Capital Wall Project, built with Next.js 15, Tailwind CSS, and Framer Motion.
+
+## Features
+
+- **Responsive Design**: Mobile-first, sleek, and modern UI.
+- **Dynamic Dashboards**: Real-time portfolio tracking and analytics.
+- **Secure Authentication**: Integrated with the Core Capital Wall Backend for JWT-based auth and 2FA.
+- **Interactive UI**: Smooth transitions and animations using Framer Motion.
 
 ## Getting Started
 
-First, run the development server:
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Run the Development Server**:
+   ```bash
+   npm run dev
+   ```
+   The app will be available at `http://localhost:3001` (configured in `package.json`).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Configure Environment**:
+   Create a `.env.local` if you need to override the API URL:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Animations**: Framer Motion
+- **State Management**: Zustand
+- **Data Fetching**: Axios & React Query

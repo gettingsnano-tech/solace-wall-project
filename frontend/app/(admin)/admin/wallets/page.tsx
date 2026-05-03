@@ -260,7 +260,7 @@ export default function AdminWalletsPage() {
                        <td className="px-8 py-6">
                           <div className="flex items-center space-x-3">
                              {wallet.coin?.icon_url ? (
-                               <img src={`http://localhost:8000${wallet.coin.icon_url}`} alt={wallet.coin?.name} className="w-8 h-8 rounded-full object-contain bg-white/5 p-1" />
+                               <img src={wallet.coin.icon_url} alt={wallet.coin?.name} className="w-8 h-8 rounded-full object-contain bg-white/5 p-1" />
                              ) : (
                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[var(--primary)] text-xs font-bold">#{wallet.coin_id}</div>
                              )}

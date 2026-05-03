@@ -23,3 +23,11 @@ def get_admin_user(current_user: models.User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     return current_user
+
+def get_verified_user(current_user: models.User = Depends(get_current_user)):
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please verify your email to perform this action."
+        )
+    return current_user

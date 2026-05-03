@@ -117,6 +117,10 @@ export default function MegaNav() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
+  // Hide MegaNav on dashboard and admin routes (they have their own layouts)
+  const isDashboard = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+  if (isDashboard) return null;
+
   const navData = {
     Products: [
       { title: "Crypto Wallet", description: "Store, send, and receive crypto securely", href: "/wallet", icon: <Wallet className="w-4 h-4" /> },
@@ -154,18 +158,8 @@ export default function MegaNav() {
       >
         <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2.5 shrink-0">
-            <div className="w-9 h-9 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-xl flex items-center justify-center shadow-lg shadow-[var(--color-primary)]/20">
-              <TrendingUp className="text-[#0A0E1A] w-5 h-5" aria-hidden="true" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-[11px] font-black uppercase tracking-[0.15em] text-[var(--color-primary)]">
-                Core Capital
-              </span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-gray-500">
-                Digital Currency
-              </span>
-            </div>
+          <Link href="/" className="flex items-center shrink-0">
+            <img src="/logo.png" alt="Core Capital Digital Currency" className="h-24 md:h-28 w-auto object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)]" />
           </Link>
 
           {/* Desktop Nav Links */}
@@ -230,14 +224,8 @@ export default function MegaNav() {
           >
             {/* Mobile Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] shrink-0">
-              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)] rounded-lg flex items-center justify-center">
-                  <TrendingUp className="text-[#0A0E1A] w-4 h-4" />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--color-primary)]">Core Capital</span>
-                  <span className="text-[8px] font-bold uppercase tracking-widest text-gray-500">Digital Currency</span>
-                </div>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center">
+                <img src="/logo.png" alt="Core Capital Digital Currency" className="h-20 w-auto object-contain" />
               </Link>
               <button
                 onClick={() => setMobileMenuOpen(false)}

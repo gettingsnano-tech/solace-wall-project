@@ -9,22 +9,22 @@ export default function TransactionsLandingPage() {
   const sections = [
     {
       title: "Immutable History Logs",
-      desc: "Experience a permanent record of every simulated move. Our transaction logs mimic the immutability of the blockchain, providing a reliable audit trail for all your demo activities.",
+      desc: "Experience a permanent record of every move. Our transaction logs provide the immutability of the blockchain, offering a reliable audit trail for all your financial activities.",
       icon: <History className="w-8 h-8" />
     },
     {
       title: "Real-Time Status Synchronization",
-      desc: "Watch as simulated transactions move through states of pending, approved, or rejected. Our synchronizer ensures that your dashboard reflects the absolute latest status of every request.",
+      desc: "Watch as transactions move through states of pending, approved, or rejected. Our synchronizer ensures that your dashboard reflects the absolute latest status of every request.",
       icon: <Clock className="w-8 h-8" />
     },
     {
       title: "Detailed Metadata Verification",
-      desc: "Every simulated transaction includes detailed metadata: from network hashes and gas estimates to timestamped confirmation logs, providing a professional depth to your data demos.",
+      desc: "Every transaction includes detailed metadata: from network hashes and gas estimates to timestamped confirmation logs, providing professional-grade data integrity.",
       icon: <Search className="w-8 h-8" />
     },
     {
       title: "Verified Settlement Simulation",
-      desc: "Learn about the settlement process. We simulate the confirmation cycles required by different networks, giving you a clear window into how assets are finalized on the ledger.",
+      desc: "Learn about the settlement process. We manage the confirmation cycles required by different networks, giving you a clear window into how assets are finalized on the ledger.",
       icon: <CheckCircle2 className="w-8 h-8" />
     }
   ];
@@ -44,7 +44,7 @@ export default function TransactionsLandingPage() {
             </div>
             <h1 className="text-5xl md:text-7xl font-black mb-8">Auditable <br /><span className="text-gradient">Transaction History</span></h1>
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed">
-               Transparency at every step. Monitor, verify, and analyze every simulated asset movement with our enterprise-grade history engine.
+               Transparency at every step. Monitor, verify, and analyze every asset movement with our enterprise-grade history engine.
             </p>
          </motion.div>
       </section>

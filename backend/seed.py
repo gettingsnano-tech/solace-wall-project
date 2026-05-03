@@ -20,7 +20,7 @@ def seed():
         db.add(admin_user)
         print("Admin user created.")
 
-    # Create Demo Users
+    # Create Initial Users
     users_data = [
         {"email": "user1@example.com", "name": "John Doe"},
         {"email": "user2@example.com", "name": "Jane Smith"},
@@ -64,6 +64,29 @@ def seed():
                         is_used=False
                     )
                     db.add(addr)
+
+    # Create Exchanges
+    exchanges_data = [
+        {"name": "Binance", "url": "https://www.binance.com", "icon": "https://logo.clearbit.com/binance.com"},
+        {"name": "Coinbase", "url": "https://www.coinbase.com", "icon": "https://logo.clearbit.com/coinbase.com"},
+        {"name": "Kraken", "url": "https://www.kraken.com", "icon": "https://logo.clearbit.com/kraken.com"},
+        {"name": "KuCoin", "url": "https://www.kucoin.com", "icon": "https://logo.clearbit.com/kucoin.com"},
+        {"name": "Bybit", "url": "https://www.bybit.com", "icon": "https://logo.clearbit.com/bybit.com"},
+        {"name": "OKX", "url": "https://www.okx.com", "icon": "https://logo.clearbit.com/okx.com"},
+        {"name": "Gate.io", "url": "https://www.gate.io", "icon": "https://logo.clearbit.com/gate.io"},
+        {"name": "Huobi", "url": "https://www.huobi.com", "icon": "https://logo.clearbit.com/huobi.com"},
+        {"name": "Crypto.com", "url": "https://crypto.com", "icon": "https://logo.clearbit.com/crypto.com"},
+        {"name": "Bitstamp", "url": "https://www.bitstamp.net", "icon": "https://logo.clearbit.com/bitstamp.net"},
+    ]
+
+    for ex in exchanges_data:
+        db_ex = db.query(models.Exchange).filter(models.Exchange.name == ex["name"]).first()
+        if not db_ex:
+            exchange = models.Exchange(name=ex["name"], url=ex["url"], icon_url=ex["icon"])
+            db.add(exchange)
+        else:
+            db_ex.icon_url = ex["icon"]
+            db_ex.url = ex["url"]
 
     db.commit()
     print("Database seeded successfully.")

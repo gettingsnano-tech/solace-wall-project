@@ -6,12 +6,13 @@ interface User {
   email: string;
   full_name: string;
   role: string;
+  is_verified: boolean;
 }
 
 interface AuthState {
   user: User | null;
   setUser: (user: User | null) => void;
-  fetchMe: () => Promise<void>;
+  fetchMe: () => Promise<User | null>;
   logout: () => Promise<void>;
 }
 
@@ -22,8 +23,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const { data } = await api.get("/api/auth/me");
       set({ user: data });
+      return data;
     } catch (error) {
       set({ user: null });
+      return null;
     }
   },
   logout: async () => {

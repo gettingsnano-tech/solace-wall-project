@@ -39,6 +39,38 @@ def upgrade_db():
     # Create index on user_id
     c.execute("CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications (user_id)")
     
+    # Create exchanges table
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS exchanges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name VARCHAR UNIQUE,
+        url VARCHAR,
+        icon_url VARCHAR,
+        is_active BOOLEAN DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    print("Ensured exchanges table exists")
+    
+    # Create swap_history table
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS swap_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        from_coin_id INTEGER,
+        to_coin_id INTEGER,
+        from_amount DECIMAL(20, 8),
+        to_amount DECIMAL(20, 8),
+        fee_usd DECIMAL(20, 2) DEFAULT 3.00,
+        status VARCHAR DEFAULT 'completed',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(from_coin_id) REFERENCES coins(id),
+        FOREIGN KEY(to_coin_id) REFERENCES coins(id)
+    )
+    """)
+    print("Ensured swap_history table exists")
+    
     conn.commit()
     conn.close()
 

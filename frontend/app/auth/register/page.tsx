@@ -56,7 +56,7 @@ export default function RegisterPage() {
       >
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">Create Account</h1>
-          <p className="text-gray-400">Join CORE CAPITAL COLLECTION today.</p>
+          <p className="text-gray-400">Join CORE CAPITAL DIGITAL CURRENCY today.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

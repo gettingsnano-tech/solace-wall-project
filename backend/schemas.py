@@ -14,6 +14,13 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
 class UserResponse(UserBase):
     id: int
     role: str
@@ -25,6 +32,11 @@ class UserResponse(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class LoginResponse(BaseModel):
+    message: str
+    role: str
+    is_verified: bool
 
 class CoinBase(BaseModel):
     name: str
@@ -165,3 +177,65 @@ class Enable2FAResponse(BaseModel):
 
 class Verify2FARequest(BaseModel):
     token: str
+
+class PlatformSettingsResponse(BaseModel):
+    users_offset: int
+    assets_offset: Decimal
+    withdrawals_offset: int
+    deposits_offset: Decimal
+    uptime_display: str
+    encryption_display: str
+    model_config = ConfigDict(from_attributes=True)
+
+class PlatformSettingsUpdate(BaseModel):
+    users_offset: Optional[int] = None
+    assets_offset: Optional[Decimal] = None
+    withdrawals_offset: Optional[int] = None
+    deposits_offset: Optional[Decimal] = None
+    uptime_display: Optional[str] = None
+    encryption_display: Optional[str] = None
+
+class ExchangeBase(BaseModel):
+    name: str
+    url: str
+    icon_url: Optional[str] = None
+
+class ExchangeCreate(ExchangeBase):
+    pass
+
+class ExchangeUpdate(BaseModel):
+    name: Optional[str] = None
+    url: Optional[str] = None
+    icon_url: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class ExchangeResponse(ExchangeBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class SwapRequest(BaseModel):
+    from_coin_id: int
+    to_coin_id: int
+    amount: Decimal
+
+class SwapResponse(BaseModel):
+    id: int
+    user: Optional[UserResponse] = None
+    from_coin: CoinResponse
+    to_coin: CoinResponse
+    from_amount: Decimal
+    to_amount: Decimal
+    fee_usd: Decimal
+    status: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class SwapPreview(BaseModel):
+    from_coin_id: int
+    to_coin_id: int
+    amount: Decimal
+    estimated_receive: Decimal
+    fee_usd: Decimal
+    rate: float

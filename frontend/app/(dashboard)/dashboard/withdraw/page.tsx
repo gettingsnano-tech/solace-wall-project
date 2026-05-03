@@ -99,17 +99,17 @@ export default function WithdrawPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-10 text-center">
-         <h1 className="text-4xl font-black mb-2">Withdraw <span className="text-gradient">Assets</span></h1>
-         <p className="text-gray-400">Securely move your simulated assets to an external address.</p>
+    <div className="max-w-4xl mx-auto pb-10">
+      <div className="mb-6 lg:mb-10 text-center">
+         <h1 className="text-3xl lg:text-4xl font-black mb-2">Withdraw <span className="text-gradient">Assets</span></h1>
+         <p className="text-gray-400 text-sm lg:text-base">Securely move your assets to an external address.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="glass-card p-10 rounded-[2.5rem]"
+          className="glass-card p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem]"
         >
            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
@@ -136,7 +136,7 @@ export default function WithdrawPage() {
                     type="text" 
                     required
                     placeholder="e.g. ERC-20, TRC-20"
-                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-xl lg:rounded-2xl py-3 lg:py-4 px-5 lg:px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold"
                     value={formData.network}
                     onChange={(e) => setFormData({...formData, network: e.target.value})}
                  />
@@ -148,7 +148,7 @@ export default function WithdrawPage() {
                     type="text" 
                     required
                     placeholder="Enter external address"
-                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold font-mono"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-xl lg:rounded-2xl py-3 lg:py-4 px-5 lg:px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold font-mono"
                     value={formData.to_address}
                     onChange={(e) => setFormData({...formData, to_address: e.target.value})}
                  />
@@ -166,7 +166,7 @@ export default function WithdrawPage() {
                        step="0.000001"
                        min="0.000001"
                        placeholder="0.00"
-                       className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold"
+                       className="w-full bg-[#0A0E1A] border border-white/10 rounded-xl lg:rounded-2xl py-3 lg:py-4 px-5 lg:px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold"
                        value={formData.amount}
                        onChange={(e) => setFormData({...formData, amount: e.target.value})}
                     />
@@ -190,24 +190,24 @@ export default function WithdrawPage() {
            </form>
         </motion.div>
 
-        <div className="space-y-8">
-           <div className="glass-card p-10 rounded-[2.5rem] border-[var(--secondary)]/10">
-              <h4 className="font-bold flex items-center space-x-2 text-[var(--secondary)] mb-6">
-                 <AlertCircle className="w-5 h-5" />
+        <div className="space-y-6 lg:space-y-8">
+           <div className="glass-card p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem] border-[var(--secondary)]/10">
+              <h4 className="font-bold flex items-center space-x-2 text-[var(--secondary)] mb-4 lg:mb-6 text-sm lg:text-base">
+                 <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5" />
                  <span>Important Information</span>
               </h4>
-              <ul className="space-y-4 text-sm text-gray-400">
+              <ul className="space-y-3 lg:space-y-4 text-xs lg:text-sm text-gray-400">
                  <li className="flex items-start space-x-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
+                    <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
                     <span>All withdrawals require manual approval from the CORE CAPITAL administration team.</span>
                  </li>
                  <li className="flex items-start space-x-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
+                    <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
                     <span>Verification usually takes 5-30 minutes during business hours.</span>
                  </li>
                  <li className="flex items-start space-x-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
-                    <span>Double-check the destination address. Simulated assets cannot be recovered if sent to the wrong address.</span>
+                    <div className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-[var(--secondary)] mt-1.5 shrink-0"></div>
+                    <span>Double-check the destination address. Assets cannot be recovered if sent to the wrong address.</span>
                  </li>
               </ul>
            </div>
@@ -232,7 +232,7 @@ export default function WithdrawPage() {
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                        <span className="text-gray-500">Transaction Fee</span>
-                       <span className="text-[var(--secondary)]">0.00 {selectedCoin.symbol} (Demo)</span>
+                       <span className="text-[var(--secondary)]">0.00 {selectedCoin.symbol} (Included)</span>
                     </div>
                     <div className="flex justify-between text-lg font-black pt-4">
                        <span>Total</span>

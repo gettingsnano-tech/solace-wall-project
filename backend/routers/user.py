@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
-from dependencies import get_current_user
+from dependencies import get_current_user, get_verified_user
 from typing import List, Optional
 from datetime import datetime
 from utils.email import send_withdrawal_email
@@ -133,7 +133,7 @@ def get_user_transactions(db: Session = Depends(get_db), user: models.User = Dep
 # ─── Withdrawals ──────────────────────────────────────────────────────────────
 
 @router.post("/withdraw")
-def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = Depends(get_db), user: models.User = Depends(get_verified_user)):
     # Validate balance
     balance = db.query(models.Balance).filter(
         models.Balance.user_id == user.id,
@@ -166,7 +166,7 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
     db.add(notification)
     db.commit()
 
-    # Simulate sending email if notification is enabled
+    # Send email if notification is enabled
     if user.email_notif_withdrawal:
         send_withdrawal_email(user.email, float(request.amount), coin_symbol)
 
@@ -196,7 +196,7 @@ def update_user_settings(
     return user
 
 @router.post("/2fa/generate", response_model=schemas.Enable2FAResponse)
-def generate_2fa_secret(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+def generate_2fa_secret(db: Session = Depends(get_db), user: models.User = Depends(get_verified_user)):
     if user.two_factor_enabled:
         raise HTTPException(status_code=400, detail="2FA is already enabled")
     
@@ -213,7 +213,7 @@ def generate_2fa_secret(db: Session = Depends(get_db), user: models.User = Depen
 def verify_and_enable_2fa(
     request: schemas.Verify2FARequest,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user)
+    user: models.User = Depends(get_verified_user)
 ):
     if not user.two_factor_secret:
         raise HTTPException(status_code=400, detail="2FA secret not generated yet")
@@ -239,7 +239,7 @@ def verify_and_enable_2fa(
 def disable_2fa(
     request: schemas.Verify2FARequest,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user)
+    user: models.User = Depends(get_verified_user)
 ):
     if not user.two_factor_enabled:
         raise HTTPException(status_code=400, detail="2FA is not enabled")
@@ -285,4 +285,130 @@ def mark_notification_read(
     notification.is_read = True
     db.commit()
     return {"message": "Notification marked as read"}
+
+# ─── Swap ────────────────────────────────────────────────────────────────────
+from utils.market import get_coin_price_usd
+from decimal import Decimal
+
+@router.post("/swap/preview", response_model=schemas.SwapPreview)
+async def preview_swap(request: schemas.SwapRequest, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    from_coin = db.query(models.Coin).filter(models.Coin.id == request.from_coin_id).first()
+    to_coin = db.query(models.Coin).filter(models.Coin.id == request.to_coin_id).first()
+    
+    if not from_coin or not to_coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+    
+    # Logic: Any -> USDT or USDT -> Any
+    if from_coin.symbol.upper() != "USDT" and to_coin.symbol.upper() != "USDT":
+         raise HTTPException(status_code=400, detail="One of the coins must be USDT")
+
+    from_price = await get_coin_price_usd(from_coin.symbol)
+    to_price = await get_coin_price_usd(to_coin.symbol)
+    
+    # USD value of source amount
+    usd_value = float(request.amount) * from_price
+    
+    # Deduct $3 fee
+    usd_after_fee = usd_value - 3.0
+    if usd_after_fee < 0:
+        usd_after_fee = 0
+        
+    # Amount in target coin
+    target_amount = usd_after_fee / to_price
+    
+    return {
+        "from_coin_id": from_coin.id,
+        "to_coin_id": to_coin.id,
+        "amount": request.amount,
+        "estimated_receive": Decimal(str(round(target_amount, 8))),
+        "fee_usd": Decimal("3.00"),
+        "rate": from_price / to_price
+    }
+
+@router.post("/swap", response_model=schemas.SwapResponse)
+async def perform_swap(request: schemas.SwapRequest, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    from_coin = db.query(models.Coin).filter(models.Coin.id == request.from_coin_id).first()
+    to_coin = db.query(models.Coin).filter(models.Coin.id == request.to_coin_id).first()
+    
+    if not from_coin or not to_coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+        
+    # Logic: Any -> USDT or USDT -> Any
+    if from_coin.symbol.upper() != "USDT" and to_coin.symbol.upper() != "USDT":
+         raise HTTPException(status_code=400, detail="One of the coins must be USDT")
+
+    # Check balance
+    balance_from = db.query(models.Balance).filter(
+        models.Balance.user_id == user.id,
+        models.Balance.coin_id == from_coin.id
+    ).first()
+    
+    if not balance_from or balance_from.amount < request.amount:
+        raise HTTPException(status_code=400, detail="Insufficient balance")
+        
+    # Calculate conversion
+    from_price = await get_coin_price_usd(from_coin.symbol)
+    to_price = await get_coin_price_usd(to_coin.symbol)
+    
+    usd_value = float(request.amount) * from_price
+    usd_after_fee = usd_value - 3.0
+    
+    if usd_after_fee <= 0:
+        raise HTTPException(status_code=400, detail="Amount too small to cover fee")
+        
+    target_amount = usd_after_fee / to_price
+    target_amount_dec = Decimal(str(round(target_amount, 8)))
+
+    # Deduct from source
+    balance_from.amount -= request.amount
+    
+    # Add to target
+    balance_to = db.query(models.Balance).filter(
+        models.Balance.user_id == user.id,
+        models.Balance.coin_id == to_coin.id
+    ).first()
+    
+    if balance_to:
+        balance_to.amount += target_amount_dec
+    else:
+        balance_to = models.Balance(user_id=user.id, coin_id=to_coin.id, amount=target_amount_dec)
+        db.add(balance_to)
+        
+    # Record history
+    history = models.SwapHistory(
+        user_id=user.id,
+        from_coin_id=from_coin.id,
+        to_coin_id=to_coin.id,
+        from_amount=request.amount,
+        to_amount=target_amount_dec,
+        fee_usd=Decimal("3.00"),
+        status="completed"
+    )
+    db.add(history)
+    
+    # Find admin users for notification
+    admins = db.query(models.User).filter(models.User.role == "admin").all()
+    for admin in admins:
+        notif = models.Notification(
+            user_id=admin.id,
+            type="swap",
+            message=f"User {user.email} performed a swap: {request.amount} {from_coin.symbol} → {target_amount_dec} {to_coin.symbol} (Fee: $3.00 USD)"
+        )
+        db.add(notif)
+
+    # User notification
+    user_notif = models.Notification(
+        user_id=user.id,
+        type="swap",
+        message=f"You successfully swapped {request.amount} {from_coin.symbol} for {target_amount_dec} {to_coin.symbol}. A fee of $3.00 USD was applied."
+    )
+    db.add(user_notif)
+
+    db.commit()
+    db.refresh(history)
+    return history
+
+@router.get("/swaps", response_model=List[schemas.SwapResponse])
+def get_user_swaps(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    return db.query(models.SwapHistory).filter(models.SwapHistory.user_id == user.id).order_by(models.SwapHistory.created_at.desc()).all()
 

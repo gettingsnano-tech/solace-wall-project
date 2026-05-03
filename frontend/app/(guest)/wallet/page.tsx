@@ -64,7 +64,7 @@ export default function WalletPage() {
   const [prices, setPrices] = useState<CoinPrice[]>([]);
   const [totalBalance, setTotalBalance] = useState<number | null>(null);
   const [priceLoading, setPriceLoading] = useState(true);
-  const DEMO_HOLDINGS: Record<string, number> = { bitcoin: 1.84, ethereum: 22.5, tether: 52471, binancecoin: 148 };
+  const INITIAL_PORTFOLIO: Record<string, number> = { bitcoin: 1.84, ethereum: 22.5, tether: 52471, binancecoin: 148 };
 
   const fetchPrices = async () => {
     try {
@@ -79,7 +79,7 @@ export default function WalletPage() {
         ...c,
         price: data[c.id]?.usd ?? 0,
         change24h: data[c.id]?.usd_24h_change ?? 0,
-        value: (data[c.id]?.usd ?? 0) * (DEMO_HOLDINGS[c.id] ?? 0),
+        value: (data[c.id]?.usd ?? 0) * (INITIAL_PORTFOLIO[c.id] ?? 0),
       }));
       setPrices(updated);
       setTotalBalance(updated.reduce((s, c) => s + c.value, 0));

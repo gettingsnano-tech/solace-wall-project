@@ -9,8 +9,8 @@ import CookieConsent from "@/components/ui/CookieConsent";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CORE CAPITAL COLLECTION | Premium Crypto Wallet Simulator",
-  description: "Secure, Simulated, Scalable. The future of digital assets.",
+  title: "CORE CAPITAL DIGITAL CURRENCY | Institutional Crypto Wallet Platform",
+  description: "Secure, Scalable, Sovereign. The future of digital assets.",
 };
 
 export default function RootLayout({

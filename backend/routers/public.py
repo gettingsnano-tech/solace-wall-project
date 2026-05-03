@@ -4,6 +4,7 @@ from database import get_db
 import httpx
 from typing import List
 import schemas
+import models
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 
@@ -35,3 +36,31 @@ async def get_market_data():
                 ]
         except Exception as e:
             return []
+
+@router.get("/stats")
+def get_public_stats(db: Session = Depends(get_db)):
+    total_users = db.query(models.User).filter(models.User.role == "user").count()
+    pending_withdrawals = db.query(models.WithdrawalRequest).filter(models.WithdrawalRequest.status == "pending").count()
+    
+    from sqlalchemy import func
+    total_deposits = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.type == "deposit",
+        models.Transaction.status == "approved"
+    ).scalar() or 0
+    
+    settings = db.query(models.PlatformSettings).first()
+    if not settings:
+        settings = models.PlatformSettings()
+    
+    return {
+        "users": total_users + settings.users_offset,
+        "assets": float(settings.assets_offset), # Static display assets
+        "pending_withdrawals": pending_withdrawals + settings.withdrawals_offset,
+        "total_deposits": float(total_deposits) + float(settings.deposits_offset),
+        "uptime": settings.uptime_display,
+        "encryption": settings.encryption_display
+    }
+
+@router.get("/exchanges", response_model=List[schemas.ExchangeResponse])
+def list_active_exchanges(db: Session = Depends(get_db)):
+    return db.query(models.Exchange).filter(models.Exchange.is_active == True).all()

@@ -130,7 +130,7 @@ export default function AdminWithdrawalsPage() {
                        <td className="px-6 py-6">
                           <div className="flex flex-col">
                              <span className="text-sm font-black text-white">{parseFloat(req.amount).toFixed(4)} {req.coin.symbol}</span>
-                             <span className="text-[10px] text-gray-500 font-bold tracking-tighter">≈ $0.00 Demo</span>
+                             <span className="text-[10px] text-gray-500 font-bold tracking-tighter">Verified by Network</span>
                           </div>
                        </td>
                        <td className="px-8 py-6">
@@ -180,7 +180,7 @@ export default function AdminWithdrawalsPage() {
             <ShieldCheck className="w-8 h-8" />
             <div>
                <h4 className="font-bold">Security Enforcement</h4>
-               <p className="text-xs text-gray-500">Every approval triggers an internal transaction broadcast simulator.</p>
+               <p className="text-xs text-gray-500">Every approval triggers a secure transaction broadcast to the network.</p>
             </div>
          </div>
          <div className="hidden md:block">

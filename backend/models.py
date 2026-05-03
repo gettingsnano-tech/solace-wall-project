@@ -147,3 +147,44 @@ class WithdrawalRequest(Base):
 
     user = relationship("User", back_populates="withdrawal_requests", foreign_keys=[user_id])
     reviewer = relationship("User", foreign_keys=[reviewed_by])
+
+class PlatformSettings(Base):
+    __tablename__ = "platform_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Offsets for social proof
+    users_offset = Column(Integer, default=0)
+    assets_offset = Column(Numeric(precision=20, scale=2), default=0)
+    withdrawals_offset = Column(Integer, default=0)
+    deposits_offset = Column(Numeric(precision=20, scale=2), default=0)
+    
+    # Additional display stats
+    uptime_display = Column(String, default="99.99%")
+    encryption_display = Column(String, default="256-bit")
+    
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Exchange(Base):
+    __tablename__ = "exchanges"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    url = Column(String)
+    icon_url = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class SwapHistory(Base):
+    __tablename__ = "swap_history"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    from_coin_id = Column(Integer, ForeignKey("coins.id"))
+    to_coin_id = Column(Integer, ForeignKey("coins.id"))
+    from_amount = Column(Numeric(precision=20, scale=8))
+    to_amount = Column(Numeric(precision=20, scale=8))
+    fee_usd = Column(Numeric(precision=20, scale=2), default=3.00)
+    status = Column(String, default="completed") # completed, failed
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User")
+    from_coin = relationship("Coin", foreign_keys=[from_coin_id])
+    to_coin = relationship("Coin", foreign_keys=[to_coin_id])

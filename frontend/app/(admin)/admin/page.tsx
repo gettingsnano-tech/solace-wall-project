@@ -8,7 +8,6 @@ import {
   ArrowDownCircle, 
   CreditCard,
   Loader2,
-  TrendingUp,
   Activity
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -16,27 +15,26 @@ import { motion } from "framer-motion";
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     users: 0,
+    users_offset: 0,
     coins: 0,
-    pendingWithdrawals: 0,
-    totalDeposits: 0
+    pending_withdrawals: 0,
+    pending_withdrawals_offset: 0,
+    total_deposits: 0,
+    total_deposits_offset: 0
   });
+  const [walletStats, setWalletStats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [usersRes, coinsRes, withdrawRes] = await Promise.all([
-          api.get("/api/admin/users"),
-          api.get("/api/admin/coins"),
-          api.get("/api/admin/withdrawals")
+        const [statsRes, walletRes] = await Promise.all([
+          api.get("/api/admin/stats"),
+          api.get("/api/admin/wallets/stats")
         ]);
         
-        setStats({
-          users: usersRes.data.length,
-          coins: coinsRes.data.length,
-          pendingWithdrawals: withdrawRes.data.filter((w: any) => w.status === 'pending').length,
-          totalDeposits: 1250000 // Simulated value for overview
-        });
+        setStats(statsRes.data);
+        setWalletStats(walletRes.data);
       } catch (error) {
         console.error("Failed to fetch admin stats", error);
       } finally {
@@ -55,11 +53,41 @@ export default function AdminDashboardPage() {
   }
 
   const statCards = [
-    { label: "Total Registered Users", value: stats.users, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Active Asset Coins", value: stats.coins, icon: Coins, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
-    { label: "Pending Withdrawals", value: stats.pendingWithdrawals, icon: ArrowDownCircle, color: "text-orange-500", bg: "bg-orange-500/10" },
-    { label: "Simulated Deployment Vol.", value: `$${(stats.totalDeposits / 1e6).toFixed(1)}M`, icon: CreditCard, color: "text-[var(--secondary)]", bg: "bg-[var(--secondary)]/10" },
+    { 
+      label: "Total Registered Users", 
+      value: stats.users + stats.users_offset, 
+      real: stats.users,
+      icon: Users, 
+      color: "text-blue-500", 
+      bg: "bg-blue-500/10" 
+    },
+    { 
+      label: "Active Asset Coins", 
+      value: stats.coins, 
+      real: stats.coins,
+      icon: Coins, 
+      color: "text-[var(--primary)]", 
+      bg: "bg-[var(--primary)]/10" 
+    },
+    { 
+      label: "Pending Withdrawals", 
+      value: stats.pending_withdrawals + stats.pending_withdrawals_offset, 
+      real: stats.pending_withdrawals,
+      icon: ArrowDownCircle, 
+      color: "text-orange-500", 
+      bg: "bg-orange-500/10" 
+    },
+    { 
+      label: "Total Platform Vol.", 
+      value: `$${(stats.total_deposits + stats.total_deposits_offset).toLocaleString()}`, 
+      real: `$${stats.total_deposits.toLocaleString()}`,
+      icon: CreditCard, 
+      color: "text-[var(--secondary)]", 
+      bg: "bg-[var(--secondary)]/10" 
+    },
   ];
+
+  const lowPools = walletStats.filter(p => p.available < 3);
 
   return (
     <div className="space-y-12">
@@ -70,13 +98,18 @@ export default function AdminDashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="glass-card p-8 rounded-[2rem]"
+            className="glass-card p-8 rounded-[2rem] relative overflow-hidden"
           >
              <div className={`${stat.bg} ${stat.color} w-12 h-12 rounded-2xl flex items-center justify-center mb-6`}>
                 <stat.icon className="w-6 h-6" />
              </div>
              <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">{stat.label}</p>
-             <h3 className="text-3xl font-black">{stat.value}</h3>
+             <h3 className="text-2xl font-black">{stat.value}</h3>
+             
+             <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-gray-600 uppercase">Actual Value</span>
+                <span className="text-[10px] font-black text-gray-400">{stat.real}</span>
+             </div>
           </motion.div>
         ))}
       </div>
@@ -120,7 +153,11 @@ export default function AdminDashboardPage() {
                  { label: "Database Core", status: "Operational", color: "text-[var(--secondary)]" },
                  { label: "Auth Mesh", status: "Operational", color: "text-[var(--secondary)]" },
                  { label: "Price Feeds", status: "Operational", color: "text-[var(--secondary)]" },
-                 { label: "Seed Pool", status: "Low Availability", color: "text-orange-500" }
+                 { 
+                   label: "Address Pool", 
+                   status: lowPools.length > 0 ? `${lowPools.length} Low Pools` : "Healthy", 
+                   color: lowPools.length > 0 ? "text-orange-500" : "text-[var(--secondary)]" 
+                 }
                ].map((sys, idx) => (
                  <div key={idx} className="flex justify-between items-center pb-4 border-b border-white/[0.05]">
                     <span className="text-sm font-bold text-gray-400">{sys.label}</span>

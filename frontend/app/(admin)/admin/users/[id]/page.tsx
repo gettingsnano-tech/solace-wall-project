@@ -34,11 +34,10 @@ export default function AdminUserDetailPage() {
     notes: ""
   });
   const [topUpLoading, setTopUpLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchData = async () => {
     try {
-      // In a real app, I'd have a specific admin endpoint for full user detail
-      // Here I'll improvise with multiple calls or assume a detailed endpoint exists
       const [coinsRes, usersRes] = await Promise.all([
         api.get("/api/admin/coins"),
         api.get("/api/admin/users")
@@ -54,14 +53,19 @@ export default function AdminUserDetailPage() {
       setUser(foundUser);
       setCoins(coinsRes.data);
       
-      // For demo purposes, we'll fetch balances and wallets if available
-      // Note: Backend might need specific admin routes for these or I'll use the user ones with auth mock
-      // But for this simulation, we'll just show the UI for now or mock the response
-      setBalances([]); 
-      setWallets([]);
-      setTransactions([]);
-    } catch (error) {
-      toast.error("Failed to load user details.");
+      // Fetching real data for detailed overview
+      const [balRes, walletRes, txRes] = await Promise.all([
+        api.get(`/api/admin/users/${id}/balances`),
+        api.get(`/api/admin/users/${id}/wallets`),
+        api.get(`/api/admin/users/${id}/transactions`)
+      ]);
+      
+      setBalances(balRes.data); 
+      setWallets(walletRes.data);
+      setTransactions(txRes.data);
+    } catch (error: any) {
+      console.error("Error fetching user data:", error);
+      toast.error(error.response?.data?.detail || "Failed to load user details.");
     } finally {
       setLoading(false);
     }
@@ -92,6 +96,27 @@ export default function AdminUserDetailPage() {
     }
   };
 
+  const handleUserAction = async (action: string) => {
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    
+    setActionLoading(true);
+    try {
+      if (action === 'delete') {
+        await api.delete(`/api/admin/users/${id}`);
+        toast.success("User deleted successfully.");
+        router.push("/admin/users");
+      } else {
+        await api.post(`/api/admin/users/${id}/${action}`);
+        toast.success(`User account ${action}ed.`);
+        fetchData();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} user.`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
        <div className="flex h-full items-center justify-center">
@@ -102,13 +127,20 @@ export default function AdminUserDetailPage() {
 
   return (
     <div className="space-y-12">
-      <div className="flex items-center space-x-4">
-         <button onClick={() => router.back()} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <ArrowLeft className="w-6 h-6" />
-         </button>
-         <div>
-            <h1 className="text-3xl font-black">{user.full_name}</h1>
-            <p className="text-gray-400 text-sm font-medium">{user.email}</p>
+      <div className="flex items-center justify-between">
+         <div className="flex items-center space-x-4">
+            <button onClick={() => router.back()} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+               <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+               <h1 className="text-3xl font-black">{user.full_name}</h1>
+               <div className="flex items-center space-x-2">
+                  <p className="text-gray-400 text-sm font-medium">{user.email}</p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${user.is_active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    {user.is_active ? 'Active' : 'Disabled'}
+                  </span>
+               </div>
+            </div>
          </div>
       </div>
 
@@ -131,33 +163,83 @@ export default function AdminUserDetailPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 {coins.map((coin: any, idx) => (
-                    <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-2xl flex justify-between items-center group hover:border-[var(--primary)]/20 transition-all">
-                       <div className="flex items-center space-x-4">
-                          <img src={coin.icon_url} alt={coin.symbol} className="w-8 h-8 rounded-full" />
-                          <div>
-                             <div className="font-bold text-sm tracking-tight">{coin.name}</div>
-                             <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{coin.symbol}</div>
-                          </div>
-                       </div>
-                       <div className="text-right">
-                          <div className="font-mono text-sm font-bold">0.00</div>
-                          <div className="text-[10px] text-gray-600 font-bold">$0.00</div>
-                       </div>
-                    </div>
-                 ))}
-              </div>
+                  {coins.map((coin: any, idx) => {
+                    const balance = balances.find((b: any) => b.coin.id === coin.id);
+                    const amount = balance ? parseFloat(balance.amount) : 0;
+                    return (
+                      <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-2xl flex justify-between items-center group hover:border-[var(--primary)]/20 transition-all">
+                        <div className="flex items-center space-x-4">
+                            <img src={coin.icon_url} alt={coin.symbol} className="w-8 h-8 rounded-full" />
+                            <div>
+                                <div className="font-bold text-sm tracking-tight">{coin.name}</div>
+                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{coin.symbol}</div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="font-mono text-sm font-bold">{amount.toFixed(coin.symbol === 'USDT' ? 2 : 6)}</div>
+                            <div className="text-[10px] text-gray-600 font-bold">Balance</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+               </div>
            </div>
 
            <div className="glass-card p-10 rounded-[2.5rem]">
-              <h3 className="text-xl font-bold flex items-center space-x-3 mb-10">
-                 <Wallet className="w-5 h-5 text-[var(--primary)]" />
-                 <span>Assigned Wallets</span>
-              </h3>
-              <div className="text-center py-12 text-gray-500 italic font-medium bg-black/10 rounded-[1.5rem] border border-dashed border-white/5">
-                 No wallet addresses generated by this user yet.
-              </div>
-           </div>
+               <h3 className="text-xl font-bold flex items-center space-x-3 mb-10">
+                  <Wallet className="w-5 h-5 text-[var(--primary)]" />
+                  <span>Assigned Wallets</span>
+               </h3>
+               {wallets.length > 0 ? (
+                 <div className="space-y-4">
+                   {wallets.map((w: any, idx) => (
+                     <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-2xl flex justify-between items-center">
+                        <div>
+                          <div className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">{w.coin.symbol} - {w.network}</div>
+                          <div className="font-mono text-xs break-all text-[var(--primary)]">{w.address.address}</div>
+                        </div>
+                        <div className="text-[10px] bg-white/5 px-2 py-1 rounded text-gray-400 font-bold">ACTIVE</div>
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-center py-12 text-gray-500 italic font-medium bg-black/10 rounded-[1.5rem] border border-dashed border-white/5">
+                    No wallet addresses generated by this user yet.
+                 </div>
+               )}
+            </div>
+
+            <div className="glass-card p-10 rounded-[2.5rem]">
+               <h3 className="text-xl font-bold flex items-center space-x-3 mb-10">
+                  <History className="w-5 h-5 text-[var(--secondary)]" />
+                  <span>Transaction History</span>
+               </h3>
+               {transactions.length > 0 ? (
+                 <div className="divide-y divide-white/5">
+                   {transactions.map((tx: any, idx) => (
+                     <div key={idx} className="py-4 flex justify-between items-center">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${tx.type === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                             {tx.type === 'deposit' ? 'D' : 'W'}
+                          </div>
+                          <div>
+                             <div className="font-bold text-sm">{tx.amount} {tx.coin.symbol}</div>
+                             <div className="text-[10px] text-gray-500">{new Date(tx.timestamp).toLocaleString()}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                           <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'approved' ? 'text-green-500' : 'text-gray-400'}`}>{tx.status}</div>
+                           <div className="text-[10px] font-mono text-gray-600 truncate w-24">{tx.tx_hash}</div>
+                        </div>
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-center py-12 text-gray-500 italic font-medium bg-black/10 rounded-[1.5rem] border border-dashed border-white/5">
+                    No transactions found for this user.
+                 </div>
+               )}
+            </div>
         </div>
 
         {/* Sidebar Status/Actions */}
@@ -168,9 +250,27 @@ export default function AdminUserDetailPage() {
                  <span>Account Control</span>
               </h4>
               <div className="space-y-4">
-                 <button className="w-full bg-white/[0.05] hover:bg-white/[0.1] text-sm font-bold py-4 rounded-2xl transition-all">Disable Account</button>
-                 <button className="w-full bg-white/[0.05] hover:bg-white/[0.1] text-sm font-bold py-4 rounded-2xl transition-all">Reset Password</button>
-                 <button className="w-full bg-red-500/10 text-red-500 hover:bg-red-500 text-sm font-bold py-4 rounded-2xl hover:text-white transition-all">Delete User</button>
+                 <button 
+                  onClick={() => handleUserAction(user.is_active ? 'disable' : 'enable')}
+                  disabled={actionLoading}
+                  className="w-full bg-white/[0.05] hover:bg-white/[0.1] text-sm font-bold py-4 rounded-2xl transition-all"
+                 >
+                    {user.is_active ? 'Disable Account' : 'Enable Account'}
+                 </button>
+                 <button 
+                  onClick={() => handleUserAction('reset-password')}
+                  disabled={actionLoading}
+                  className="w-full bg-white/[0.05] hover:bg-white/[0.1] text-sm font-bold py-4 rounded-2xl transition-all"
+                 >
+                    Reset Password
+                 </button>
+                 <button 
+                  onClick={() => handleUserAction('delete')}
+                  disabled={actionLoading}
+                  className="w-full bg-red-500/10 text-red-500 hover:bg-red-500 text-sm font-bold py-4 rounded-2xl hover:text-white transition-all"
+                 >
+                    Delete User
+                 </button>
               </div>
            </div>
 
@@ -242,7 +342,7 @@ export default function AdminUserDetailPage() {
                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Internal Notes</label>
                        <textarea 
                           className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-medium h-24 resize-none"
-                          placeholder="e.g. Investor Demo Funding"
+                          placeholder="e.g. Investor Liquidity Credit"
                           value={topUpData.notes}
                           onChange={(e) => setTopUpData({...topUpData, notes: e.target.value})}
                        />

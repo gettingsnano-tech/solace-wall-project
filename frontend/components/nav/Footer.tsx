@@ -2,22 +2,25 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { TrendingUp, Globe, Shield, Zap, Mail, MessageSquare, Code, Layout } from "lucide-react";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Hide Footer on dashboard and admin routes (they have their own layouts)
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) return null;
+
   return (
     <footer className="bg-[#0A0E1A] border-t border-white/[0.05] pt-20 pb-12">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
           <div className="space-y-6">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center">
-                <TrendingUp className="text-[var(--background)] w-6 h-6" />
-              </div>
-              <span className="text-xl font-bold tracking-tight uppercase">Core Capital</span>
+            <Link href="/" className="flex items-center">
+              <img src="/logo.png" alt="Core Capital Digital Currency" className="h-40 w-auto object-contain filter drop-shadow-[0_0_12px_rgba(255,255,255,0.08)]" />
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-              The world's leading high-fidelity crypto wallet simulator for professional investors and enterprise demos.
+              The world's leading institutional-grade crypto wallet platform for professional investors and enterprise wealth management.
             </p>
             <div className="flex space-x-4">
                {[MessageSquare, Code, Globe].map((Icon, i) => (
@@ -70,7 +73,7 @@ export default function Footer() {
             <Link href="/about/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="/about/glossary" className="hover:text-white transition-colors">Glossary</Link>
           </div>
-          <p className="text-xs text-gray-700 font-bold">© 2026 CORE CAPITAL COLLECTION. ALL RIGHTS RESERVED.</p>
+          <p className="text-xs text-gray-700 font-bold">© 2026 CORE CAPITAL DIGITAL CURRENCY. ALL RIGHTS RESERVED.</p>
         </div>
       </div>
     </footer>

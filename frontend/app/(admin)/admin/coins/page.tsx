@@ -13,7 +13,9 @@ import {
   Coins,
   Network,
   X,
-  ChevronRight
+  ToggleLeft,
+  ToggleRight,
+  Save
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -37,6 +39,11 @@ export default function AdminCoinsPage() {
   const [networksLoading, setNetworksLoading] = useState(false);
   const [networkForm, setNetworkForm] = useState({ name: "", label: "" });
   const [addingNetwork, setAddingNetwork] = useState(false);
+
+  // Settings / Edit modal state
+  const [editCoin, setEditCoin] = useState<any | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editForm, setEditForm] = useState({ icon_url: "", is_active: true });
 
   const [formData, setFormData] = useState<{
     name: string;
@@ -62,6 +69,28 @@ export default function AdminCoinsPage() {
   useEffect(() => {
     fetchCoins();
   }, []);
+
+  // ── Open edit/settings modal ──────────────────────────────────────────────
+  const openEditModal = (coin: any) => {
+    setEditCoin(coin);
+    setEditForm({ icon_url: coin.icon_url || "", is_active: coin.is_active });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editCoin) return;
+    setEditLoading(true);
+    try {
+      await api.patch(`/api/admin/coins/${editCoin.id}`, editForm);
+      toast.success("Coin updated successfully!");
+      setEditCoin(null);
+      fetchCoins();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to update coin.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   // ── Fetch networks when modal opens ──────────────────────────────────────
   const openNetworkModal = async (coin: any) => {
@@ -198,7 +227,11 @@ export default function AdminCoinsPage() {
                      <Network className="w-4 h-4" />
                      <span>Manage Networks</span>
                   </button>
-                  <button className="bg-white/[0.05] hover:bg-white/[0.1] py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={() => openEditModal(coin)}
+                    title="Edit Coin Settings"
+                    className="bg-white/[0.05] hover:bg-white/[0.1] py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center"
+                  >
                      <Settings className="w-4 h-4" />
                   </button>
                </div>
@@ -277,6 +310,87 @@ export default function AdminCoinsPage() {
                         className="flex-1 btn-primary py-4 rounded-2xl text-sm font-bold flex items-center justify-center"
                        >
                           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Publish Coin"}
+                       </button>
+                    </div>
+                 </form>
+              </motion.div>
+           </motion.div>
+         )}
+      </AnimatePresence>
+
+      {/* ── Coin Settings / Edit Modal */}
+      <AnimatePresence>
+         {editCoin && (
+           <motion.div
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+           >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="glass-card w-full max-w-md p-10 rounded-[3rem] space-y-8"
+              >
+                 <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                       <img src={editCoin.icon_url} alt={editCoin.name} className="w-12 h-12 rounded-2xl" />
+                       <div>
+                          <h3 className="text-2xl font-black">{editCoin.name}</h3>
+                          <p className="text-xs text-gray-500 uppercase tracking-widest font-black">{editCoin.symbol}</p>
+                       </div>
+                    </div>
+                    <button
+                      onClick={() => setEditCoin(null)}
+                      className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                 </div>
+
+                 <form onSubmit={handleSaveEdit} className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Icon URL</label>
+                       <input
+                         type="text"
+                         className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-mono"
+                         placeholder="https://..."
+                         value={editForm.icon_url}
+                         onChange={(e) => setEditForm({ ...editForm, icon_url: e.target.value })}
+                       />
+                    </div>
+
+                    <div className="flex items-center justify-between bg-white/[0.03] p-5 rounded-2xl border border-white/[0.05]">
+                       <div>
+                          <p className="font-bold text-sm">Active Status</p>
+                          <p className="text-xs text-gray-500 mt-0.5">Controls if this coin appears to users</p>
+                       </div>
+                       <button
+                         type="button"
+                         onClick={() => setEditForm({ ...editForm, is_active: !editForm.is_active })}
+                         className={`transition-colors ${editForm.is_active ? 'text-[var(--secondary)]' : 'text-gray-600'}`}
+                       >
+                          {editForm.is_active 
+                            ? <ToggleRight className="w-10 h-10" /> 
+                            : <ToggleLeft className="w-10 h-10" />}
+                       </button>
+                    </div>
+
+                    <div className="flex space-x-4">
+                       <button
+                         type="button"
+                         onClick={() => setEditCoin(null)}
+                         className="flex-1 bg-white/[0.05] py-4 rounded-2xl text-sm font-bold hover:bg-white/[0.1] transition-all"
+                       >
+                          Cancel
+                       </button>
+                       <button
+                         type="submit"
+                         disabled={editLoading}
+                         className="flex-1 btn-primary py-4 rounded-2xl text-sm font-bold flex items-center justify-center space-x-2"
+                       >
+                          {editLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /><span>Save Changes</span></>}
                        </button>
                     </div>
                  </form>

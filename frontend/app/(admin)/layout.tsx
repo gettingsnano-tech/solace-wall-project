@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
@@ -11,7 +11,11 @@ import {
   ArrowDownCircle, 
   LogOut,
   TrendingUp,
-  ShieldAlert
+  ShieldAlert,
+  Settings,
+  Loader2,
+  Globe,
+  RefreshCcw
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { Toaster } from "react-hot-toast";
@@ -37,19 +41,27 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, fetchMe, logout } = useAuthStore();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      await fetchMe();
+      setChecking(true);
+      const currentUser = await fetchMe();
+      
+      if (!currentUser) {
+         router.push("/auth/login");
+      } else if (!currentUser.is_verified) {
+         router.push("/auth/verify-required");
+      } else if (currentUser.role !== "admin") {
+         router.push("/dashboard");
+      } else {
+         setIsAuthorized(true);
+      }
+      setChecking(false);
     };
     init();
-  }, []);
-
-  useEffect(() => {
-     if (user && user.role !== "admin") {
-        router.push("/dashboard");
-     }
-  }, [user]);
+  }, [fetchMe, router]);
 
   const handleLogout = async () => {
     await logout();
@@ -60,9 +72,21 @@ export default function AdminLayout({
     { icon: BarChart, label: "Overview", href: "/admin" },
     { icon: Users, label: "User Management", href: "/admin/users" },
     { icon: Coins, label: "Coin Management", href: "/admin/coins" },
+    { icon: RefreshCcw, label: "Swap History", href: "/admin/swaps" },
+    { icon: Globe, label: "External Exchanges", href: "/admin/exchanges" },
     { icon: Wallet, label: "Wallet Addresses", href: "/admin/wallets" },
     { icon: ArrowDownCircle, label: "Withdrawals", href: "/admin/withdrawals" },
+    { icon: Settings, label: "Platform Settings", href: "/admin/settings" },
   ];
+
+  if (checking || !isAuthorized) {
+    return (
+      <div className="h-screen w-screen bg-[#080B14] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-12 h-12 animate-spin text-[var(--primary)]" />
+        <p className="text-gray-500 font-bold animate-pulse uppercase tracking-[0.3em] text-[10px]">Verifying Administrative Access</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#080B14] text-white overflow-hidden">
@@ -109,7 +133,7 @@ export default function AdminLayout({
         <header className="h-20 flex items-center px-10 border-b border-white/[0.05] bg-[#0A0E1A]/40">
            <h2 className="text-xl font-black tracking-tight">{menuItems.find(m => m.href === pathname)?.label || "Administration"}</h2>
         </header>
-        <main className="flex-1 overflow-y-auto p-10">
+        <main className="flex-1 overflow-y-auto px-10 pb-10 pt-16">
           {children}
         </main>
       </div>

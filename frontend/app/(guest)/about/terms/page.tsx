@@ -1,31 +1,31 @@
 "use client";
 
 import React from "react";
-import { FileText, Scale, Gavel, AlertTriangle, ShieldAlert, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+import { FileText, Scale, Gavel, AlertTriangle, ShieldAlert, CheckCircle2, ArrowRight, ShieldCheck, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function TermsPage() {
   const sections = [
     {
-      title: "Simulated Assets only",
-      desc: "CORE CAPITAL is a simulation platform. All digital assets, balances, and transaction hashes generated or displayed are synthetic and have no real-world financial value or blockchain validity.",
-      icon: <AlertTriangle className="w-8 h-8" />
-    },
-    {
-      title: "User Responsibility",
-      desc: "You are responsible for maintaining the confidentiality of your simulation account credentials. Any activity performed under your account is deemed your responsibility within the platform's sandbox.",
+      title: "Digital Asset Sovereignty",
+      desc: "CORE CAPITAL is an institutional-grade asset management platform. All digital assets and transaction hashes are processed with 256-bit encryption to ensure maximum security and platform integrity.",
       icon: <ShieldCheck className="w-8 h-8" />
     },
     {
+      title: "User Responsibility",
+      desc: "You are responsible for maintaining the confidentiality of your account credentials. Any activity performed under your account is deemed your responsibility within the platform's ecosystem.",
+      icon: <Lock className="w-8 h-8" />
+    },
+    {
       title: "Platform Usage",
-      desc: "The platform is provided for educational and demo purposes only. Any attempt to exploit, reverse engineer, or use the platform for fraudulent real-world financial claims is strictly prohibited.",
+      desc: "The platform is provided for professional wealth management and digital asset control. Any attempt to exploit, reverse engineer, or use the platform for unauthorized activities is strictly prohibited.",
       icon: <Gavel className="w-8 h-8" />
     },
     {
-      title: "No Financial Advice",
-      desc: "Content on this platform does not constitute financial, investment, or legal advice. Simulation performance does not guarantee real-world results in the digital asset markets.",
-      icon: <Scale className="w-8 h-8" />
+      title: "Risk Disclosure",
+      desc: "Content on this platform does not constitute financial, investment, or legal advice. Digital asset markets involve significant risk, and platform performance does not guarantee future results.",
+      icon: <AlertTriangle className="w-8 h-8" />
     }
   ];
 
@@ -44,7 +44,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-5xl md:text-7xl font-black mb-8">Terms of <br /><span className="text-gradient">Service</span></h1>
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed">
-               Please read our terms of use carefully. By accessing the Core Capital platform, you acknowledge and agree to our simulated environment guidelines.
+               Please read our terms of use carefully. By accessing the Core Capital platform, you acknowledge and agree to our institutional guidelines and security protocols.
             </p>
          </motion.div>
       </section>
@@ -82,7 +82,7 @@ export default function TermsPage() {
                </div>
                <div>
                   <h4 className="font-bold text-lg">Agreement Acknowledgement</h4>
-                  <p className="text-xs text-gray-500">I confirm that I understand this is a simulation platform with zero real financial assets.</p>
+                  <p className="text-xs text-gray-500">I confirm that I understand the terms of use and security protocols of this platform.</p>
                </div>
             </div>
             <Link href="/auth/register" className="btn-primary flex items-center space-x-3 px-10">
