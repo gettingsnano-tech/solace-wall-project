@@ -1,12 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: 'standalone', // Optimized for Docker deployment
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
 
     if (!apiUrl) {
       console.warn("\x1b[33m%s\x1b[0m", "⚠️ WARNING: NEXT_PUBLIC_API_URL is not set. API proxying will be disabled.");
       return [];
+    }
+
+    // Automatically prepend http:// if protocol is missing
+    if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+      apiUrl = `http://${apiUrl}`;
     }
 
     return [
