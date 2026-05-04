@@ -1,20 +1,22 @@
 import type { NextConfig } from "next";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL);
-if (!API_URL) {
-  console.warn("NEXT_PUBLIC_API_URL is not set. API requests may fail.");
-}
-
 const nextConfig: NextConfig = {
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
+    if (!apiUrl) {
+      console.warn("\x1b[33m%s\x1b[0m", "⚠️ WARNING: NEXT_PUBLIC_API_URL is not set. API proxying will be disabled.");
+      return [];
+    }
+
     return [
       {
         source: '/api/:path*',
-        destination: `${API_URL}/api/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
       {
         source: '/uploads/:path*',
-        destination: `${API_URL}/uploads/:path*`,
+        destination: `${apiUrl}/uploads/:path*`,
       },
     ]
   },
