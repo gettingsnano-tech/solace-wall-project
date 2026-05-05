@@ -22,7 +22,10 @@ export default function AdminSettingsPage() {
     withdrawals_offset: 0,
     deposits_offset: 0,
     uptime_display: "99.99%",
-    encryption_display: "256-bit"
+    encryption_display: "256-bit",
+    contact_email: "support@capitaltsx.com",
+    contact_phone: "+1 (555) 000-0000",
+    contact_address: "123 Crypto Ave, Blockchain City"
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -209,6 +212,51 @@ export default function AdminSettingsPage() {
                         onChange={handleChange}
                         className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
                         placeholder="e.g. 256-bit"
+                     />
+                  </div>
+               </div>
+            </div>
+
+            {/* Public Contact Info */}
+            <div className="glass-card p-8 rounded-[2.5rem] space-y-6 md:col-span-2">
+               <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center">
+                     <Info className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold">Public Contact Information</h3>
+               </div>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Support Email</label>
+                     <input 
+                        type="email"
+                        name="contact_email"
+                        value={settings.contact_email}
+                        onChange={handleChange}
+                        className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                        placeholder="support@capitaltsx.com"
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Support Phone</label>
+                     <input 
+                        type="text"
+                        name="contact_phone"
+                        value={settings.contact_phone}
+                        onChange={handleChange}
+                        className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                        placeholder="+1 (555) 000-0000"
+                     />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Physical Address / Headquarters</label>
+                     <input 
+                        type="text"
+                        name="contact_address"
+                        value={settings.contact_address}
+                        onChange={handleChange}
+                        className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                        placeholder="123 Crypto Ave, Blockchain City"
                      />
                   </div>
                </div>

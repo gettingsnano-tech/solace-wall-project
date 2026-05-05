@@ -336,11 +336,11 @@ export default function SupportContent() {
                      </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-                     <Link href="/auth/register" className="bg-black text-white px-10 py-5 rounded-full text-sm font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center">
-                        Open a Ticket
+                     <Link href="/dashboard/support" className="bg-black text-white px-10 py-5 rounded-full text-sm font-black uppercase tracking-widest hover:scale-105 transition-transform flex items-center justify-center">
+                        Open Support Ticket
                      </Link>
-                     <Link href="/wallet" className="bg-white/20 backdrop-blur-md text-black border border-black/10 px-10 py-5 rounded-full text-sm font-black uppercase tracking-widest hover:bg-white/30 transition-all flex items-center justify-center">
-                        Upgrade to Premium
+                     <Link href="/contact" className="bg-white/20 backdrop-blur-md text-black border border-black/10 px-10 py-5 rounded-full text-sm font-black uppercase tracking-widest hover:bg-white/30 transition-all flex items-center justify-center">
+                        Contact Us Directly
                      </Link>
                   </div>
                </div>

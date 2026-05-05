@@ -186,6 +186,9 @@ class PlatformSettingsResponse(BaseModel):
     deposits_offset: Decimal
     uptime_display: str
     encryption_display: str
+    contact_email: str
+    contact_phone: str
+    contact_address: str
     model_config = ConfigDict(from_attributes=True)
 
 class PlatformSettingsUpdate(BaseModel):
@@ -195,6 +198,9 @@ class PlatformSettingsUpdate(BaseModel):
     deposits_offset: Optional[Decimal] = None
     uptime_display: Optional[str] = None
     encryption_display: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_address: Optional[str] = None
 
 class ExchangeBase(BaseModel):
     name: str
@@ -240,3 +246,33 @@ class SwapPreview(BaseModel):
     estimated_receive: Decimal
     fee_usd: Decimal
     rate: float
+
+# Ticket Schemas
+class TicketMessageBase(BaseModel):
+    content: str
+
+class TicketMessageCreate(TicketMessageBase):
+    pass
+
+class TicketMessageResponse(TicketMessageBase):
+    id: int
+    ticket_id: int
+    sender_id: int
+    is_admin: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class TicketBase(BaseModel):
+    subject: str
+
+class TicketCreate(TicketBase):
+    content: str # Initial message
+
+class TicketResponse(TicketBase):
+    id: int
+    user_id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    messages: List[TicketMessageResponse] = []
+    model_config = ConfigDict(from_attributes=True)

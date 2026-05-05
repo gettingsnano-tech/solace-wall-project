@@ -64,3 +64,18 @@ def get_public_stats(db: Session = Depends(get_db)):
 @router.get("/exchanges", response_model=List[schemas.ExchangeResponse])
 def list_active_exchanges(db: Session = Depends(get_db)):
     return db.query(models.Exchange).filter(models.Exchange.is_active == True).all()
+
+@router.get("/contact-info")
+def get_contact_info(db: Session = Depends(get_db)):
+    settings = db.query(models.PlatformSettings).first()
+    if not settings:
+        return {
+            "email": "support@capitaltsx.com",
+            "phone": "+1 (555) 000-0000",
+            "address": "123 Crypto Ave, Blockchain City"
+        }
+    return {
+        "email": settings.contact_email,
+        "phone": settings.contact_phone,
+        "address": settings.contact_address
+    }

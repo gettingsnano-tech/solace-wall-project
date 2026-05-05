@@ -162,7 +162,35 @@ class PlatformSettings(Base):
     uptime_display = Column(String, default="99.99%")
     encryption_display = Column(String, default="256-bit")
     
+    contact_email = Column(String, default="support@capitaltsx.com")
+    contact_phone = Column(String, default="+1 (555) 000-0000")
+    contact_address = Column(String, default="123 Crypto Ave, Blockchain City")
+    
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    subject = Column(String)
+    status = Column(String, default="open") # open, closed
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User")
+    messages = relationship("TicketMessage", back_populates="ticket", cascade="all, delete-orphan")
+
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"))
+    sender_id = Column(Integer, ForeignKey("users.id"))
+    content = Column(String)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    ticket = relationship("Ticket", back_populates="messages")
+    sender = relationship("User")
 
 class Exchange(Base):
     __tablename__ = "exchanges"

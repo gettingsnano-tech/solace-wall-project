@@ -15,7 +15,8 @@ import {
   Settings,
   Loader2,
   Globe,
-  RefreshCcw
+  RefreshCcw,
+  MessageSquare
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { Toaster } from "react-hot-toast";
@@ -76,6 +77,7 @@ export default function AdminLayout({
     { icon: Globe, label: "External Exchanges", href: "/admin/exchanges" },
     { icon: Wallet, label: "Wallet Addresses", href: "/admin/wallets" },
     { icon: ArrowDownCircle, label: "Withdrawals", href: "/admin/withdrawals" },
+    { icon: MessageSquare, label: "Support Tickets", href: "/admin/support" },
     { icon: Settings, label: "Platform Settings", href: "/admin/settings" },
   ];
 

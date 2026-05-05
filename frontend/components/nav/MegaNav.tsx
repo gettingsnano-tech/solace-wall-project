@@ -185,6 +185,12 @@ export default function MegaNav() {
             >
               Support
             </Link>
+            <Link
+              href="/contact"
+              className="px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-all"
+            >
+              Contact
+            </Link>
           </div>
 
           {/* Desktop CTA */}
@@ -303,9 +309,16 @@ export default function MegaNav() {
               <Link
                 href="/support"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center py-3.5 px-2 text-sm font-black uppercase tracking-widest text-gray-300 hover:text-white"
+                className="flex items-center py-3.5 px-2 text-sm font-black uppercase tracking-widest text-gray-300 hover:text-white border-b border-white/[0.05]"
               >
                 Support
+              </Link>
+              <Link
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center py-3.5 px-2 text-sm font-black uppercase tracking-widest text-gray-300 hover:text-white"
+              >
+                Contact
               </Link>
             </div>
 

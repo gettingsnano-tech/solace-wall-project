@@ -17,7 +17,8 @@ import {
   ShoppingCart,
   DollarSign,
   Repeat,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/lib/store";
@@ -52,6 +53,7 @@ export default function Sidebar({ mobile, onClose }: { mobile?: boolean, onClose
     { icon: History, label: "Transactions", href: "/dashboard/transactions" },
     { icon: ArrowUpRight, label: "Withdraw", href: "/dashboard/withdraw" },
     { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+    { icon: MessageSquare, label: "Support", href: "/dashboard/support" },
   ];
 
   const handleLogout = async () => {

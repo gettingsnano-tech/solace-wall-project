@@ -13,7 +13,10 @@ def init_settings():
         settings = models.PlatformSettings(
             users_offset=180000,
             assets_offset=2400000000,
-            deposits_offset=1250000
+            deposits_offset=1250000,
+            contact_email="support@capitaltsx.com",
+            contact_phone="+1 (555) 000-0000",
+            contact_address="123 Crypto Ave, Blockchain City"
         )
         db.add(settings)
         db.commit()

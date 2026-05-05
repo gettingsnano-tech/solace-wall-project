@@ -428,3 +428,50 @@ def delete_exchange(id: int, db: Session = Depends(get_db)):
 @router.get("/swaps", response_model=List[schemas.SwapResponse])
 def list_all_swaps(db: Session = Depends(get_db)):
     return db.query(models.SwapHistory).order_by(models.SwapHistory.created_at.desc()).all()
+
+# ─── Support Ticketing ───────────────────────────────────────────────────────
+
+@router.get("/tickets", response_model=List[schemas.TicketResponse])
+def list_all_tickets(status: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.Ticket)
+    if status:
+        query = query.filter(models.Ticket.status == status)
+    return query.order_by(models.Ticket.updated_at.desc()).all()
+
+@router.get("/tickets/{ticket_id}", response_model=schemas.TicketResponse)
+def get_ticket_admin(ticket_id: int, db: Session = Depends(get_db)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return ticket
+
+@router.post("/tickets/{ticket_id}/messages", response_model=schemas.TicketMessageResponse)
+def admin_reply_to_ticket(ticket_id: int, message_in: schemas.TicketMessageCreate, db: Session = Depends(get_db), current_admin: models.User = Depends(get_admin_user)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    message = models.TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=current_admin.id,
+        content=message_in.content,
+        is_admin=True
+    )
+    import datetime
+    ticket.updated_at = datetime.datetime.utcnow()
+    
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return message
+
+@router.patch("/tickets/{ticket_id}/status", response_model=schemas.TicketResponse)
+def update_ticket_status(ticket_id: int, status: str, db: Session = Depends(get_db)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    ticket.status = status
+    db.commit()
+    db.refresh(ticket)
+    return ticket

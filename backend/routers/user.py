@@ -412,3 +412,62 @@ async def perform_swap(request: schemas.SwapRequest, db: Session = Depends(get_d
 def get_user_swaps(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     return db.query(models.SwapHistory).filter(models.SwapHistory.user_id == user.id).order_by(models.SwapHistory.created_at.desc()).all()
 
+# Support Ticketing
+@router.post("/tickets", response_model=schemas.TicketResponse)
+def create_ticket(ticket_in: schemas.TicketCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    ticket = models.Ticket(
+        user_id=current_user.id,
+        subject=ticket_in.subject,
+        status="open"
+    )
+    db.add(ticket)
+    db.commit()
+    db.refresh(ticket)
+    
+    # Add initial message
+    message = models.TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=current_user.id,
+        content=ticket_in.content,
+        is_admin=False
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(ticket)
+    return ticket
+
+@router.get("/tickets", response_model=List[schemas.TicketResponse])
+def list_tickets(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    return db.query(models.Ticket).filter(models.Ticket.user_id == current_user.id).order_by(models.Ticket.updated_at.desc()).all()
+
+@router.get("/tickets/{ticket_id}", response_model=schemas.TicketResponse)
+def get_ticket(ticket_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id, models.Ticket.user_id == current_user.id).first()
+    if not ticket:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return ticket
+
+@router.post("/tickets/{ticket_id}/messages", response_model=schemas.TicketMessageResponse)
+def reply_to_ticket(ticket_id: int, message_in: schemas.TicketMessageCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    ticket = db.query(models.Ticket).filter(models.Ticket.id == ticket_id, models.Ticket.user_id == current_user.id).first()
+    if not ticket:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    message = models.TicketMessage(
+        ticket_id=ticket.id,
+        sender_id=current_user.id,
+        content=message_in.content,
+        is_admin=False
+    )
+    import datetime
+    ticket.updated_at = datetime.datetime.utcnow()
+    if ticket.status == "closed":
+        ticket.status = "open" # Reopen if user replies
+        
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return message
+
