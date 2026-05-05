@@ -1,14 +1,20 @@
 import axios from "axios";
 
-// Use relative URL in browser so Next.js rewrites proxy it, 
-// and absolute URL on server (SSR) to bypass Next.js network stack.
+// On the client, we use relative URLs to trigger Next.js rewrites.
+// On the server (SSR), we must use the absolute URL from the environment.
+let apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
+
+if (apiUrl && !apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+  apiUrl = `http://${apiUrl}`;
+}
+
 const API_URL = typeof window !== "undefined" 
   ? "" 
-  : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000");
+  : (apiUrl || "");
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // Required for httpOnly cookies
+  withCredentials: true,
 });
 
 export default api;
