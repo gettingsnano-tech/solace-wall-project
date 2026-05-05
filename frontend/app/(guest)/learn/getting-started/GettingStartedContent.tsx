@@ -83,10 +83,10 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function GettingStartedContent() {
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24 bg-[#0A0E1A]">
+    <main className="flex flex-col w-full overflow-hidden pt-40 bg-[#0A0E1A]">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
-      <section id="gs-hero" className="relative py-24 md:py-32 overflow-hidden">
+      <section id="gs-hero" className="relative pt-10 pb-24 md:pb-32 overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[var(--color-primary)] opacity-[0.03] blur-[140px] rounded-full" />
         <div className="container mx-auto px-6">
           <div className="max-w-4xl">

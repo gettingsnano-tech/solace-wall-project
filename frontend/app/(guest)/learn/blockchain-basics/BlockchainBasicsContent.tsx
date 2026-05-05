@@ -114,10 +114,10 @@ export default function BlockchainBasicsContent() {
   }, []);
 
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24 bg-[#0A0E1A]">
+    <main className="flex flex-col w-full overflow-hidden pt-40 bg-[#0A0E1A]">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
-      <section id="bb-hero" className="relative py-24 md:py-40 overflow-hidden border-b border-white/5">
+      <section id="bb-hero" className="relative pt-10 pb-24 md:pb-40 overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 -z-10 opacity-[0.03]">
            <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle, var(--color-primary) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
         </div>

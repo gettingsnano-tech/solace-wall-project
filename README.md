@@ -70,7 +70,7 @@ HASH_SCHEME=bcrypt
 DATABASE_URL="sqlite:///./core_capital.db"
 
 # SMTP (Email)
-SMTP_2_COMPANY_NAME="Solace"
+SMTP_2_COMPANY_NAME="Core Capital Digital Currency"
 SMTP_2_FROM_EMAIL="info@yourdomain.com"
 SMTP_2_HOST="smtp-relay.example.com"
 SMTP_2_PORT=587

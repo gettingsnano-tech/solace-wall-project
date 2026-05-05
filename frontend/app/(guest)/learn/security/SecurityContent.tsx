@@ -81,10 +81,10 @@ export default function SecurityContent() {
   }, []);
 
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24 bg-[#05070A]">
+    <main className="flex flex-col w-full overflow-hidden pt-40 bg-[#05070A]">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
-      <section id="security-hero" className="relative py-24 md:py-40 overflow-hidden border-b border-white/5">
+      <section id="security-hero" className="relative py-24 md:pt-10 md:pb-40 overflow-hidden border-b border-white/5">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(240,180,41,0.03),transparent_70%)]" />
 
         <div className="container mx-auto px-6">

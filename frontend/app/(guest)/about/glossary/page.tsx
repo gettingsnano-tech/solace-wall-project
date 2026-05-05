@@ -24,7 +24,7 @@ export default function GlossaryPage() {
   );
 
   return (
-    <div className="pt-32 pb-20">
+    <div className="pt-40 pb-20">
       {/* Hero Section */}
       <section className="container mx-auto px-6 mb-20 text-center">
          <motion.div 

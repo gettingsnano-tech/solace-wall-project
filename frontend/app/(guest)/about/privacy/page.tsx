@@ -29,7 +29,7 @@ export default function PrivacyPage() {
   ];
 
   return (
-    <div className="pt-32 pb-20">
+    <div className="pt-40 pb-20">
       {/* Hero Section */}
       <section className="container mx-auto px-6 mb-24">
          <motion.div 

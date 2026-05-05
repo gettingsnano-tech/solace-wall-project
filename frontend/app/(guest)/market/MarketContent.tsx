@@ -145,10 +145,10 @@ export default function MarketContent() {
     : tickerData;
 
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24 bg-[#05070A]">
+    <main className="flex flex-col w-full overflow-hidden pt-40 bg-[#05070A]">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
-      <section id="market-hero" className="relative pt-20 pb-0 overflow-hidden">
+      <section id="market-hero" className="relative pt-10 pb-0 overflow-hidden">
         {/* Terminal Grid Background */}
         <div className="absolute inset-0 -z-10 opacity-[0.1]">
            <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(rgba(240,180,41,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(240,180,41,0.2) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />

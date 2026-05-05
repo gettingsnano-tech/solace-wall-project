@@ -200,7 +200,7 @@ export default function Home() {
       <main className="flex flex-col w-full overflow-hidden">
 
         {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
-        <section id="hero" aria-labelledby="hero-heading" className="relative min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
+        <section id="hero" className="relative min-h-screen flex items-center justify-center pt-48 pb-20 overflow-hidden">
           {/* Background layers */}
           <div className="absolute inset-0 -z-10 bg-[#0A0E1A]">
             <div className="absolute top-[-5%] right-[-10%] w-[600px] h-[600px] bg-[var(--color-primary)] opacity-[0.06] blur-[140px] rounded-full animate-pulse-slow" />
