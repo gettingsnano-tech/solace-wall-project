@@ -83,7 +83,7 @@ const intelligenceFeatures = [
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CoinsContent() {
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24">
+    <main className="flex flex-col w-full overflow-hidden pt-40">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
       <section id="coins-hero" className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">

@@ -121,7 +121,7 @@ const vettingCriteria = [
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function NetworksContent() {
   return (
-    <main className="flex flex-col w-full overflow-hidden pt-24">
+    <main className="flex flex-col w-full overflow-hidden pt-40">
       
       {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
       <section id="networks-hero" className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">

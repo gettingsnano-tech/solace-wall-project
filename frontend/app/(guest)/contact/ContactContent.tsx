@@ -23,7 +23,7 @@ export default function ContactContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-24 pb-12">
+    <div className="min-h-screen bg-[#050505] text-white pt-40 pb-12">
       {/* Background Glow */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[120px] rounded-full" />

@@ -105,7 +105,7 @@ export default function WalletPage() {
         <meta property="og:type" content="website" />
       </Head>
 
-      <main className="flex flex-col w-full overflow-hidden pt-24">
+      <main className="flex flex-col w-full overflow-hidden pt-40">
 
         {/* ── SECTION 1: HERO ─────────────────────────────────────────── */}
         <section id="wallet-hero" aria-labelledby="wallet-hero-heading" className="relative py-20 md:py-28 overflow-hidden">
