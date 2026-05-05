@@ -131,22 +131,22 @@ export default function TransactionsPage() {
                        <td className="px-4 lg:px-6 py-4 lg:py-6">
                           {tx.isSwap ? (
                             <div className="flex items-center space-x-2">
-                               <span className="font-bold text-xs lg:text-sm">{tx.from_coin.symbol}</span>
+                               <span className="font-bold text-xs lg:text-sm">{tx.from_coin?.symbol || "???"}</span>
                                <ArrowRight className="w-3 h-3 text-gray-600" />
-                               <span className="font-bold text-xs lg:text-sm text-[var(--primary)]">{tx.to_coin.symbol}</span>
+                               <span className="font-bold text-xs lg:text-sm text-[var(--primary)]">{tx.to_coin?.symbol || "???"}</span>
                             </div>
                           ) : (
                             <div className="flex items-center space-x-2 lg:space-x-3">
-                               <img src={tx.coin.icon_url} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full" alt={tx.coin.symbol} />
-                               <span className="font-bold text-xs lg:text-sm">{tx.coin.symbol}</span>
+                               <img src={tx.coin?.icon_url || "/placeholder-coin.png"} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full" alt={tx.coin?.symbol || "Coin"} />
+                               <span className="font-bold text-xs lg:text-sm">{tx.coin?.symbol || "???"}</span>
                             </div>
                           )}
                        </td>
                        <td className="px-4 lg:px-6 py-4 lg:py-6 font-mono font-bold text-xs lg:text-sm">
                           {tx.isSwap ? (
                             <div className="space-y-0.5">
-                               <div className="text-red-500 text-[10px] lg:text-xs">-{parseFloat(tx.from_amount).toFixed(8)} {tx.from_coin.symbol}</div>
-                               <div className="text-green-500 text-[10px] lg:text-xs">+{parseFloat(tx.to_amount).toFixed(8)} {tx.to_coin.symbol}</div>
+                               <div className="text-red-500 text-[10px] lg:text-xs">-{parseFloat(tx.from_amount).toFixed(8)} {tx.from_coin?.symbol || ""}</div>
+                               <div className="text-green-500 text-[10px] lg:text-xs">+{parseFloat(tx.to_amount).toFixed(8)} {tx.to_coin?.symbol || ""}</div>
                             </div>
                           ) : (
                             parseFloat(tx.amount).toFixed(tx.coin.symbol === 'USDT' ? 2 : 6)

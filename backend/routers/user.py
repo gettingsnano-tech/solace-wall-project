@@ -134,6 +134,14 @@ def get_user_transactions(db: Session = Depends(get_db), user: models.User = Dep
 
 @router.post("/withdraw")
 def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = Depends(get_db), user: models.User = Depends(get_verified_user)):
+    # Enforce withdrawal PIN if the user has one set
+    if user.withdrawal_pin_hash:
+        from utils.auth import verify_password
+        if not request.withdrawal_pin:
+            raise HTTPException(status_code=403, detail="Withdrawal PIN is required")
+        if not verify_password(request.withdrawal_pin, user.withdrawal_pin_hash):
+            raise HTTPException(status_code=403, detail="Invalid withdrawal PIN")
+
     # Validate balance
     balance = db.query(models.Balance).filter(
         models.Balance.user_id == user.id,
@@ -176,7 +184,13 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
 
 @router.get("/settings", response_model=schemas.UserSettingsResponse)
 def get_user_settings(user: models.User = Depends(get_current_user)):
-    return user
+    return {
+        "two_factor_enabled": user.two_factor_enabled,
+        "email_notif_login": user.email_notif_login,
+        "email_notif_deposit": user.email_notif_deposit,
+        "email_notif_withdrawal": user.email_notif_withdrawal,
+        "has_withdrawal_pin": bool(user.withdrawal_pin_hash),
+    }
 
 @router.put("/settings", response_model=schemas.UserSettingsResponse)
 def update_user_settings(
@@ -471,3 +485,64 @@ def reply_to_ticket(ticket_id: int, message_in: schemas.TicketMessageCreate, db:
     db.refresh(message)
     return message
 
+# ─── Withdrawal PIN ────────────────────────────────────────────────────────────
+
+@router.get("/withdrawal-pin/status")
+def get_withdrawal_pin_status(user: models.User = Depends(get_current_user)):
+    """Return whether this user has a withdrawal PIN set."""
+    return {"has_pin": bool(user.withdrawal_pin_hash)}
+
+@router.post("/withdrawal-pin/set")
+def set_withdrawal_pin(
+    request: schemas.SetWithdrawalPinRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_verified_user)
+):
+    """Set or change the withdrawal PIN. Requires current password for verification."""
+    from utils.auth import verify_password, get_password_hash
+
+    # Validate current password
+    if not verify_password(request.current_password, user.hashed_password):
+        raise HTTPException(status_code=403, detail="Incorrect password")
+
+    # Validate PIN format: 6 digits
+    if not request.pin.isdigit() or len(request.pin) != 6:
+        raise HTTPException(status_code=400, detail="PIN must be exactly 6 digits")
+
+    user.withdrawal_pin_hash = get_password_hash(request.pin)
+    db.commit()
+
+    notification = models.Notification(
+        user_id=user.id,
+        type="security",
+        message="Your withdrawal PIN has been set successfully."
+    )
+    db.add(notification)
+    db.commit()
+
+    return {"message": "Withdrawal PIN set successfully"}
+
+@router.post("/withdrawal-pin/remove")
+def remove_withdrawal_pin(
+    request: schemas.SetWithdrawalPinRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_verified_user)
+):
+    """Remove the withdrawal PIN. Requires current password for verification."""
+    from utils.auth import verify_password
+
+    if not verify_password(request.current_password, user.hashed_password):
+        raise HTTPException(status_code=403, detail="Incorrect password")
+
+    user.withdrawal_pin_hash = None
+    db.commit()
+
+    notification = models.Notification(
+        user_id=user.id,
+        type="security",
+        message="Your withdrawal PIN has been removed."
+    )
+    db.add(notification)
+    db.commit()
+
+    return {"message": "Withdrawal PIN removed"}

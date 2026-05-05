@@ -32,6 +32,8 @@ class User(Base):
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String, nullable=True)
     
+    withdrawal_pin_hash = Column(String, nullable=True)
+    
     email_notif_login = Column(Boolean, default=True)
     email_notif_deposit = Column(Boolean, default=True)
     email_notif_withdrawal = Column(Boolean, default=True)

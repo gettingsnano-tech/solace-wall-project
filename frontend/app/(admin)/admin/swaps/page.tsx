@@ -57,10 +57,10 @@ export default function AdminSwapsPage() {
   }, []);
 
   const filteredSwaps = swaps.filter(s => 
-    s.user.email.toLowerCase().includes(search.toLowerCase()) ||
-    s.user.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.from_coin.symbol.toLowerCase().includes(search.toLowerCase()) ||
-    s.to_coin.symbol.toLowerCase().includes(search.toLowerCase())
+    s.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
+    s.user?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    s.from_coin?.symbol?.toLowerCase().includes(search.toLowerCase()) ||
+    s.to_coin?.symbol?.toLowerCase().includes(search.toLowerCase())
   );
 
   if (loading) {
@@ -119,31 +119,31 @@ export default function AdminSwapsPage() {
                      <td className="px-8 py-6">
                         <div className="flex items-center space-x-3 mb-1">
                            <User className="w-3.5 h-3.5 text-gray-500" />
-                           <span className="font-bold text-sm">{swap.user.full_name}</span>
+                           <span className="font-bold text-sm">{swap.user?.full_name ?? "Unknown User"}</span>
                         </div>
                         <div className="flex items-center space-x-3 text-xs text-gray-500">
                            <Calendar className="w-3.5 h-3.5" />
                            <span>{new Date(swap.created_at).toLocaleString()}</span>
                         </div>
-                        <div className="text-[10px] text-gray-600 mt-1 font-mono">{swap.user.email}</div>
+                        <div className="text-[10px] text-gray-600 mt-1 font-mono">{swap.user?.email ?? "—"}</div>
                      </td>
-                     <td className="px-8 py-6">
+                      <td className="px-8 py-6">
                         <div className="flex items-center space-x-3">
                            <div className="flex items-center space-x-2 bg-white/[0.03] px-3 py-1.5 rounded-xl border border-white/5">
-                              <img src={swap.from_coin.icon_url} alt={swap.from_coin.symbol} className="w-4 h-4 object-contain" />
-                              <span className="text-xs font-black uppercase">{swap.from_coin.symbol}</span>
+                              <img src={swap.from_coin?.icon_url || "/placeholder-coin.png"} alt={swap.from_coin?.symbol || "Coin"} className="w-4 h-4 object-contain" />
+                              <span className="text-xs font-black uppercase">{swap.from_coin?.symbol || "???"}</span>
                            </div>
                            <ArrowRight className="w-4 h-4 text-gray-600" />
                            <div className="flex items-center space-x-2 bg-[var(--primary)]/10 px-3 py-1.5 rounded-xl border border-[var(--primary)]/10">
-                              <img src={swap.to_coin.icon_url} alt={swap.to_coin.symbol} className="w-4 h-4 object-contain" />
-                              <span className="text-xs font-black uppercase text-[var(--primary)]">{swap.to_coin.symbol}</span>
+                              <img src={swap.to_coin?.icon_url || "/placeholder-coin.png"} alt={swap.to_coin?.symbol || "Coin"} className="w-4 h-4 object-contain" />
+                              <span className="text-xs font-black uppercase text-[var(--primary)]">{swap.to_coin?.symbol || "???"}</span>
                            </div>
                         </div>
                      </td>
-                     <td className="px-8 py-6">
+                      <td className="px-8 py-6">
                         <div className="space-y-1">
-                           <p className="text-sm font-black">-{swap.from_amount} <span className="text-gray-500">{swap.from_coin.symbol}</span></p>
-                           <p className="text-sm font-black text-[var(--secondary)]">+{swap.to_amount} <span className="text-gray-500">{swap.to_coin.symbol}</span></p>
+                           <p className="text-sm font-black">-{swap.from_amount} <span className="text-gray-500">{swap.from_coin?.symbol || ""}</span></p>
+                           <p className="text-sm font-black text-[var(--secondary)]">+{swap.to_amount} <span className="text-gray-500">{swap.to_coin?.symbol || ""}</span></p>
                         </div>
                      </td>
                      <td className="px-8 py-6">

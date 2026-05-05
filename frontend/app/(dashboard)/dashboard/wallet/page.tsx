@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import {
   Plus,
   Copy,
@@ -17,6 +18,7 @@ import toast from "react-hot-toast";
 export default function WalletPage() {
   const [coins, setCoins] = useState<any[]>([]);
   const [wallets, setWallets] = useState<any[]>([]);
+  const [balances, setBalances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<any | null>(null);
   const [copied, setCopied] = useState<any | null>(null);
@@ -24,12 +26,14 @@ export default function WalletPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [coinsRes, walletsRes] = await Promise.all([
+        const [coinsRes, walletsRes, balRes] = await Promise.all([
           api.get("/api/user/coins"),
-          api.get("/api/user/wallets")
+          api.get("/api/user/wallets"),
+          api.get("/api/user/balances")
         ]);
         setCoins(coinsRes.data);
         setWallets(walletsRes.data);
+        setBalances(balRes.data);
       } catch (error) {
         toast.error("Failed to fetch wallet data.");
       } finally {
@@ -38,6 +42,9 @@ export default function WalletPage() {
     };
     fetchData();
   }, []);
+
+  const { prices } = useLivePrices();
+  const getCoinPrice = (symbol: string): number => prices[symbol.toUpperCase()] ?? 0;
 
   const generateWallet = async (coinId: any) => {
     setGenerating(coinId);
@@ -83,6 +90,10 @@ export default function WalletPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
         {coins.map((coin: any, idx: number) => {
           const wallet = wallets.find((w: any) => w.coin_id === coin.id);
+          const balance = balances.find((b: any) => b.coin.id === coin.id);
+          const balanceAmount = balance ? parseFloat(balance.amount) : 0;
+          const price = getCoinPrice(coin.symbol);
+          const usdValue = balanceAmount * price;
 
           return (
             <motion.div
@@ -102,11 +113,14 @@ export default function WalletPage() {
                     <p className="text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-widest">{coin.symbol}</p>
                   </div>
                 </div>
-                {wallet && (
-                  <div className="bg-[var(--secondary)]/10 text-[var(--secondary)] px-2 lg:px-3 py-1 rounded-full text-[9px] lg:text-[10px] font-bold uppercase tracking-widest">
-                    Active
+                <div className="text-right">
+                  <div className="font-black text-lg lg:text-xl">
+                    {balanceAmount.toFixed(coin.symbol === 'USDT' ? 2 : 6)}
                   </div>
-                )}
+                  <div className="text-[10px] lg:text-xs font-bold text-[var(--secondary)]">
+                    ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                  </div>
+                </div>
               </div>
 
               {wallet ? (

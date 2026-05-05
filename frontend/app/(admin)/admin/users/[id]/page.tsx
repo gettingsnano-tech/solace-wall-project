@@ -11,7 +11,6 @@ import {
   Loader2, 
   ShieldCheck,
   CreditCard,
-  DollarSign,
   ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -322,21 +321,42 @@ export default function AdminUserDetailPage() {
                        </div>
                     </div>
 
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Credit Amount</label>
-                       <div className="relative">
-                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                          <input 
-                            type="number" 
-                            required
-                            step="0.000001"
-                            className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 pl-12 pr-6 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
-                            placeholder="0.00"
-                            value={topUpData.amount}
-                            onChange={(e) => setTopUpData({...topUpData, amount: e.target.value})}
-                          />
-                       </div>
-                    </div>
+                     <div className="space-y-2">
+                        {(() => {
+                          const selectedCoin = coins.find((c: any) => String(c.id) === String(topUpData.coin_id));
+                          return (
+                            <>
+                              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                Credit Amount{selectedCoin ? <span className="text-[var(--primary)] normal-case font-bold ml-2">in {selectedCoin.symbol}</span> : ""}
+                              </label>
+                              <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+                                  {selectedCoin?.icon_url ? (
+                                    <img src={selectedCoin.icon_url} alt={selectedCoin.symbol} className="w-5 h-5 rounded-full object-contain" />
+                                  ) : (
+                                    <span className="text-xs font-black text-gray-500">?</span>
+                                  )}
+                                </div>
+                                <input
+                                  type="number"
+                                  required
+                                  step={selectedCoin?.symbol === 'USDT' ? '0.01' : '0.000001'}
+                                  min="0"
+                                  className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 pl-12 pr-20 focus:outline-none focus:border-[var(--primary)] text-sm font-bold"
+                                  placeholder={selectedCoin?.symbol === 'USDT' ? '0.00' : '0.00000000'}
+                                  value={topUpData.amount}
+                                  onChange={(e) => setTopUpData({...topUpData, amount: e.target.value})}
+                                />
+                                {selectedCoin && (
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">
+                                    {selectedCoin.symbol}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
+                     </div>
 
                     <div className="space-y-2">
                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Internal Notes</label>

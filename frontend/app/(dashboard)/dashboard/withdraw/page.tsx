@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { X, Lock } from "lucide-react";
 
 export default function WithdrawPage() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function WithdrawPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [networks, setNetworks] = useState<any[]>([]);
+  const [loadingNetworks, setLoadingNetworks] = useState(false);
+  
+  const [hasPin, setHasPin] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
 
   const [formData, setFormData] = useState({
     coin_id: "",
@@ -32,12 +39,14 @@ export default function WithdrawPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [coinsRes, balRes] = await Promise.all([
+        const [coinsRes, balRes, pinRes] = await Promise.all([
           api.get("/api/user/coins"),
-          api.get("/api/user/balances")
+          api.get("/api/user/balances"),
+          api.get("/api/user/withdrawal-pin/status")
         ]);
         setCoins(coinsRes.data);
         setBalances(balRes.data);
+        setHasPin(pinRes.data.has_pin);
       } catch (error) {
         toast.error("Failed to load data.");
       } finally {
@@ -47,8 +56,31 @@ export default function WithdrawPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (formData.coin_id) {
+      const fetchNetworks = async () => {
+        setLoadingNetworks(true);
+        try {
+          const { data } = await api.get(`/api/user/coins/${formData.coin_id}/networks`);
+          setNetworks(data);
+          // Auto-select first network if available
+          setFormData(prev => ({ ...prev, network: data.length > 0 ? data[0].name : "" }));
+        } catch (error) {
+          console.error("Failed to fetch networks", error);
+          setNetworks([]);
+        } finally {
+          setLoadingNetworks(false);
+        }
+      };
+      fetchNetworks();
+    } else {
+      setNetworks([]);
+      setFormData(prev => ({ ...prev, network: "" }));
+    }
+  }, [formData.coin_id]);
+
   const selectedCoin = coins.find((c: any) => c.id === parseInt(formData.coin_id));
-  const selectedBalance = balances.find((b: any) => b.coin.id === parseInt(formData.coin_id))?.amount || 0;
+  const selectedBalance = balances.find((b: any) => b.coin?.id === parseInt(formData.coin_id))?.amount || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,15 +89,27 @@ export default function WithdrawPage() {
       return;
     }
     
+    if (hasPin) {
+      setShowPinModal(true);
+    } else {
+      executeWithdrawal();
+    }
+  };
+
+  const executeWithdrawal = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSubmitting(true);
     try {
       await api.post("/api/user/withdraw", {
         coin_id: parseInt(formData.coin_id),
         network: formData.network,
         to_address: formData.to_address,
-        amount: parseFloat(formData.amount)
+        amount: parseFloat(formData.amount),
+        withdrawal_pin: hasPin ? pinInput : undefined
       });
       setSuccess(true);
+      setShowPinModal(false);
+      setPinInput("");
       toast.success("Withdrawal request submitted!");
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Withdrawal failed.");
@@ -132,14 +176,28 @@ export default function WithdrawPage() {
 
               <div className="space-y-2">
                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Network</label>
-                 <input 
-                    type="text" 
-                    required
-                    placeholder="e.g. ERC-20, TRC-20"
-                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-xl lg:rounded-2xl py-3 lg:py-4 px-5 lg:px-6 focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold"
-                    value={formData.network}
-                    onChange={(e) => setFormData({...formData, network: e.target.value})}
-                 />
+                 <div className="relative">
+                    <select 
+                       required
+                       disabled={loadingNetworks || !formData.coin_id}
+                       className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 appearance-none focus:outline-none focus:border-[var(--primary)]/50 text-sm font-bold disabled:opacity-50"
+                       value={formData.network}
+                       onChange={(e) => setFormData({...formData, network: e.target.value})}
+                    >
+                       {!formData.coin_id ? (
+                          <option value="">Select a coin first</option>
+                       ) : loadingNetworks ? (
+                          <option value="">Loading networks...</option>
+                       ) : networks.length === 0 ? (
+                          <option value="">No networks available</option>
+                       ) : (
+                          networks.map((net: any) => (
+                            <option key={net.id} value={net.name}>{net.label} ({net.name})</option>
+                          ))
+                       )}
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+                 </div>
               </div>
 
               <div className="space-y-2">
@@ -219,30 +277,88 @@ export default function WithdrawPage() {
                 className="bg-white/[0.03] p-8 rounded-[2.5rem] border border-white/5"
               >
                  <div className="flex items-center space-x-4 mb-6">
-                    <img src={selectedCoin.icon_url} alt={selectedCoin.name} className="w-12 h-12" />
+                    <img src={selectedCoin?.icon_url || "/placeholder-coin.png"} alt={selectedCoin?.name || "Coin"} className="w-12 h-12" />
                     <div>
                        <h4 className="font-bold">Withdrawal Summary</h4>
-                       <p className="text-xs text-gray-500">{selectedCoin.name} ({selectedCoin.symbol})</p>
+                       <p className="text-xs text-gray-500">{selectedCoin?.name || "Unknown"} ({selectedCoin?.symbol || "???"})</p>
                     </div>
                  </div>
                  <div className="space-y-3 pt-4 border-t border-white/5">
                     <div className="flex justify-between text-xs font-medium">
                        <span className="text-gray-500">Amount</span>
-                       <span>{formData.amount || "0.00"} {selectedCoin.symbol}</span>
+                       <span>{formData.amount || "0.00"} {selectedCoin?.symbol || ""}</span>
                     </div>
                     <div className="flex justify-between text-xs font-medium">
                        <span className="text-gray-500">Transaction Fee</span>
-                       <span className="text-[var(--secondary)]">0.00 {selectedCoin.symbol} (Included)</span>
+                       <span className="text-[var(--secondary)]">0.00 {selectedCoin?.symbol || ""} (Included)</span>
                     </div>
                     <div className="flex justify-between text-lg font-black pt-4">
                        <span>Total</span>
-                       <span>{formData.amount || "0.00"} {selectedCoin.symbol}</span>
+                       <span>{formData.amount || "0.00"} {selectedCoin?.symbol || ""}</span>
                     </div>
                  </div>
               </motion.div>
            )}
         </div>
       </div>
+
+      {/* PIN Verification Modal */}
+      <AnimatePresence>
+        {showPinModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass-card w-full max-w-sm p-8 lg:p-10 rounded-[2.5rem] relative text-center"
+            >
+              <button 
+                onClick={() => setShowPinModal(false)}
+                className="absolute top-6 right-6 p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-6">
+                <Lock className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-2xl font-black mb-2">Security Verification</h3>
+              <p className="text-gray-400 text-sm mb-8">Enter your 6-digit withdrawal PIN to authorize this transaction.</p>
+
+              <form onSubmit={executeWithdrawal} className="space-y-6 text-left">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Withdrawal PIN</label>
+                  <input 
+                    type="password" 
+                    required
+                    maxLength={6}
+                    pattern="\d{6}"
+                    autoFocus
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm tracking-[0.5em] font-mono text-center"
+                    placeholder="••••••"
+                    value={pinInput}
+                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={submitting || pinInput.length !== 6}
+                  className="w-full btn-primary py-4 rounded-2xl text-sm font-bold flex items-center justify-center space-x-2"
+                >
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Authorize Transfer</span>}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

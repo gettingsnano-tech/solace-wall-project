@@ -9,9 +9,11 @@ import {
   Mail, 
   Loader2, 
   CheckCircle2, 
-  AlertTriangle 
+  AlertTriangle,
+  Lock,
+  X
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
@@ -26,6 +28,14 @@ export default function SettingsPage() {
   const [twoFactorSecret, setTwoFactorSecret] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState("");
   const [verifying2fa, setVerifying2fa] = useState(false);
+
+  // PIN states
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinAction, setPinAction] = useState<"set" | "remove">("set");
+  const [pinCurrentPassword, setPinCurrentPassword] = useState("");
+  const [pinNew, setPinNew] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [managingPin, setManagingPin] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -102,6 +112,40 @@ export default function SettingsPage() {
     }
   };
 
+  const handleManagePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinAction === "set") {
+      if (pinNew !== pinConfirm) {
+        toast.error("PINs do not match.");
+        return;
+      }
+      if (pinNew.length !== 6) {
+        toast.error("PIN must be 6 digits.");
+        return;
+      }
+    }
+
+    setManagingPin(true);
+    try {
+      const endpoint = pinAction === "set" ? "/api/user/withdrawal-pin/set" : "/api/user/withdrawal-pin/remove";
+      await api.post(endpoint, {
+        current_password: pinCurrentPassword,
+        pin: pinNew
+      });
+
+      toast.success(`PIN ${pinAction === "set" ? "set" : "removed"} successfully.`);
+      setSettings((prev: any) => ({ ...prev, has_withdrawal_pin: pinAction === "set" }));
+      setShowPinModal(false);
+      setPinCurrentPassword("");
+      setPinNew("");
+      setPinConfirm("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || `Failed to ${pinAction} PIN.`);
+    } finally {
+      setManagingPin(false);
+    }
+  };
+
   const markNotificationRead = async (id: number) => {
     try {
       await api.put(`/api/user/notifications/${id}/read`);
@@ -141,13 +185,13 @@ export default function SettingsPage() {
            <Bell className="w-4 h-4" />
            <span>Notifications</span>
          </button>
-         <button 
-           onClick={() => setActiveTab('history')}
-           className={`flex items-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-[10px] lg:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'history' ? 'bg-[var(--primary)] text-[var(--background)]' : 'bg-white/[0.05] hover:bg-white/10 text-gray-400'}`}
-         >
-           <Smartphone className="w-4 h-4" />
-           <span>History</span>
-         </button>
+          <button 
+            onClick={() => setActiveTab('activity')}
+            className={`flex items-center space-x-2 px-4 lg:px-6 py-2.5 lg:py-3 rounded-xl lg:rounded-2xl text-[10px] lg:text-sm font-black transition-all whitespace-nowrap ${activeTab === 'activity' ? 'bg-[var(--primary)] text-[var(--background)]' : 'bg-white/[0.05] hover:bg-white/10 text-gray-400'}`}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Activity Log</span>
+          </button>
       </div>
 
       {activeTab === 'security' && (
@@ -221,6 +265,54 @@ export default function SettingsPage() {
                   )}
                </div>
             </div>
+
+            {/* Withdrawal PIN Section */}
+            <div className="glass-card p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem]">
+               <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                  <div className="space-y-2">
+                     <h3 className="text-xl lg:text-2xl font-black">Withdrawal PIN</h3>
+                     <p className="text-xs lg:text-sm text-gray-400 max-w-md">Require a 6-digit PIN to approve withdrawal requests. This prevents unauthorized asset transfers even if your account is compromised.</p>
+                  </div>
+                  {settings.has_withdrawal_pin ? (
+                    <span className="flex items-center justify-center space-x-2 bg-green-500/10 text-green-500 px-4 py-2 rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest w-fit">
+                       <CheckCircle2 className="w-4 h-4" />
+                       <span>Configured</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center space-x-2 bg-amber-500/10 text-amber-500 px-4 py-2 rounded-xl text-[10px] lg:text-xs font-black uppercase tracking-widest w-fit">
+                       <AlertTriangle className="w-4 h-4" />
+                       <span>Not Set</span>
+                    </span>
+                  )}
+               </div>
+
+               <div className="mt-8 border-t border-white/10 pt-8 flex gap-4">
+                  {settings.has_withdrawal_pin ? (
+                    <>
+                      <button 
+                        onClick={() => { setPinAction("set"); setShowPinModal(true); }}
+                        className="btn-secondary py-3 px-6 w-full sm:w-auto"
+                      >
+                         Change PIN
+                      </button>
+                      <button 
+                        onClick={() => { setPinAction("remove"); setShowPinModal(true); }}
+                        className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl lg:rounded-2xl py-3 px-6 text-sm font-bold transition-all w-full sm:w-auto"
+                      >
+                         Remove PIN
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={() => { setPinAction("set"); setShowPinModal(true); }}
+                      className="btn-primary py-3 px-8 w-full sm:w-auto flex items-center justify-center space-x-2"
+                    >
+                       <Lock className="w-4 h-4" />
+                       <span>Setup PIN</span>
+                    </button>
+                  )}
+               </div>
+            </div>
          </motion.div>
       )}
 
@@ -273,10 +365,10 @@ export default function SettingsPage() {
          </motion.div>
       )}
 
-      {activeTab === 'history' && (
+      {activeTab === 'activity' && (
          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="glass-card p-8 rounded-[2.5rem]">
-               <h3 className="text-xl font-black mb-6">Web Notifications</h3>
+               <h3 className="text-xl font-black mb-6">Recent Activity</h3>
                <div className="space-y-4">
                  {notifications.length === 0 ? (
                    <p className="text-gray-500 text-sm">No notifications found.</p>
@@ -299,6 +391,96 @@ export default function SettingsPage() {
             </div>
          </motion.div>
       )}
+
+      {/* PIN Modal */}
+      <AnimatePresence>
+        {showPinModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass-card w-full max-w-md p-8 lg:p-10 rounded-[2.5rem] relative"
+            >
+              <button 
+                onClick={() => setShowPinModal(false)}
+                className="absolute top-6 right-6 p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h3 className="text-2xl font-black mb-2">
+                {pinAction === "set" ? (settings.has_withdrawal_pin ? "Change PIN" : "Setup PIN") : "Remove PIN"}
+              </h3>
+              <p className="text-gray-400 text-sm mb-8">
+                {pinAction === "set" 
+                  ? "Enter your current password and choose a 6-digit numeric PIN." 
+                  : "Enter your current password to remove your withdrawal PIN."}
+              </p>
+
+              <form onSubmit={handleManagePin} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Current Password</label>
+                  <input 
+                    type="password" 
+                    required
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm"
+                    placeholder="Enter your password"
+                    value={pinCurrentPassword}
+                    onChange={(e) => setPinCurrentPassword(e.target.value)}
+                  />
+                </div>
+
+                {pinAction === "set" && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">New 6-Digit PIN</label>
+                      <input 
+                        type="password" 
+                        required
+                        maxLength={6}
+                        pattern="\d{6}"
+                        className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm tracking-[0.5em] font-mono text-center"
+                        placeholder="••••••"
+                        value={pinNew}
+                        onChange={(e) => setPinNew(e.target.value.replace(/\D/g, ''))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Confirm PIN</label>
+                      <input 
+                        type="password" 
+                        required
+                        maxLength={6}
+                        pattern="\d{6}"
+                        className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm tracking-[0.5em] font-mono text-center"
+                        placeholder="••••••"
+                        value={pinConfirm}
+                        onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={managingPin}
+                  className={`w-full py-4 rounded-2xl text-sm font-bold flex items-center justify-center transition-all ${
+                    pinAction === 'set' ? 'btn-primary' : 'bg-red-500 hover:bg-red-600 text-white'
+                  }`}
+                >
+                  {managingPin ? <Loader2 className="w-5 h-5 animate-spin" /> : (pinAction === 'set' ? "Save PIN" : "Confirm Removal")}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

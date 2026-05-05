@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import { 
   Wallet, 
   ArrowUpRight, 
@@ -11,7 +12,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Zap,
-  Loader2
+  Loader2,
+  Activity
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -19,22 +21,22 @@ import Link from "next/link";
 export default function DashboardPage() {
   const [balances, setBalances] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [marketData, setMarketData] = useState<any[]>([]);
   const [platformStats, setPlatformStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  // Live price polling — updates every 60 seconds
+  const { prices, lastUpdated } = useLivePrices();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [balRes, txRes, marketRes, statsRes] = await Promise.all([
+        const [balRes, txRes, statsRes] = await Promise.all([
           api.get("/api/user/balances"),
           api.get("/api/user/transactions"),
-          api.get("/api/public/market"),
           api.get("/api/public/stats")
         ]);
         setBalances(balRes.data);
-        setTransactions(txRes.data.slice(0, 5)); // Only last 5
-        setMarketData(marketRes.data);
+        setTransactions(txRes.data.slice(0, 5));
         setPlatformStats(statsRes.data);
       } catch (error) {
         console.error("Dashboard data fetch failed", error);
@@ -53,17 +55,11 @@ export default function DashboardPage() {
     );
   }
 
-  const getCoinPrice = (symbol: string) => {
-    const marketCoin = marketData.find((m: any) => m.symbol.toLowerCase() === symbol.toLowerCase());
-    return marketCoin ? marketCoin.current_price : 0;
-  };
+  const getCoinPrice = (symbol: string): number => prices[symbol.toUpperCase()] ?? 0;
 
-  const getCoinChange = (symbol: string) => {
-    const marketCoin = marketData.find((m: any) => m.symbol.toLowerCase() === symbol.toLowerCase());
-    return marketCoin ? marketCoin.price_change_percentage_24h : 0;
-  };
-
-  const totalBalance = balances.reduce((sum, b: any) => sum + (parseFloat(b.amount) * getCoinPrice(b.coin.symbol)), 0);
+  const totalBalance = balances.reduce((sum, b: any) => {
+    return sum + (parseFloat(b.amount) * getCoinPrice(b?.coin?.symbol || ""));
+  }, 0);
 
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -75,8 +71,25 @@ export default function DashboardPage() {
            className="lg:col-span-2 glass-card p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem] relative overflow-hidden"
          >
             <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--primary)] opacity-[0.05] blur-[80px] rounded-full pointer-events-none"></div>
+            
+            {/* Live indicator */}
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="flex items-center space-x-1.5 bg-[var(--secondary)]/10 border border-[var(--secondary)]/20 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--secondary)] animate-pulse"></span>
+                <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[var(--secondary)]">Live Prices</span>
+              </div>
+              {lastUpdated && (
+                <span className="text-[9px] text-gray-600">
+                  updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+            </div>
+
             <p className="text-gray-400 font-bold text-[10px] lg:text-xs uppercase tracking-widest mb-2">Total Portfolio Value</p>
-            <h1 className="text-3xl lg:text-5xl font-black mb-6 lg:mb-8">${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h1>
+            <h1 className="text-3xl lg:text-5xl font-black mb-6 lg:mb-8">
+              ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <span className="text-sm font-bold text-gray-500 ml-2">USD</span>
+            </h1>
             
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                <Link href="/dashboard/withdraw" className="btn-primary py-3 px-8 flex items-center justify-center space-x-2 w-full sm:w-auto">
@@ -119,34 +132,48 @@ export default function DashboardPage() {
           <Link href="/dashboard/wallet" className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest hover:underline">View All</Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {balances.length > 0 ? balances.map((bal: any, idx) => (
-            <motion.div 
-               key={idx}
-               initial={{ opacity: 0, y: 10 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: idx * 0.1 }}
-               className="glass-card p-5 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] hover:scale-[1.02] transition-all"
-            >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center space-x-3 lg:space-x-4">
-                     <img src={bal.coin.icon_url} alt={bal.coin.name} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full" />
-                     <div>
-                        <div className="font-bold text-sm lg:text-base">{bal.coin.name}</div>
-                        <div className="text-[10px] lg:text-xs text-gray-400 uppercase">{bal.coin.symbol}</div>
+          {balances.length > 0 ? balances.map((bal: any, idx) => {
+            const price = getCoinPrice(bal.coin.symbol);
+            const usdValue = parseFloat(bal.amount) * price;
+            const isStable = bal.coin.symbol.toUpperCase() === 'USDT';
+            return (
+              <motion.div 
+                 key={idx}
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: idx * 0.1 }}
+                 className="glass-card p-5 lg:p-6 rounded-[1.5rem] lg:rounded-[2rem] hover:scale-[1.02] transition-all"
+              >
+                  <div className="flex justify-between items-start mb-6">
+                     <div className="flex items-center space-x-3 lg:space-x-4">
+                        <img src={bal.coin?.icon_url || "/placeholder-coin.png"} alt={bal.coin?.name || "Coin"} className="w-8 h-8 lg:w-10 lg:h-10 rounded-full" />
+                        <div>
+                           <div className="font-bold text-sm lg:text-base">{bal.coin?.name || "Unknown"}</div>
+                           <div className="text-[10px] lg:text-xs text-gray-400 uppercase">{bal.coin?.symbol || "???"}</div>
+                        </div>
                      </div>
-                  </div>
-                  {getCoinChange(bal.coin.symbol) !== 0 && (
-                    <div className={`${getCoinChange(bal.coin.symbol) >= 0 ? 'text-[var(--secondary)] bg-[var(--secondary)]/10' : 'text-red-500 bg-red-500/10'} px-2 py-1 rounded-lg text-[10px] lg:text-xs font-bold`}>
-                       {getCoinChange(bal.coin.symbol) > 0 ? '+' : ''}{getCoinChange(bal.coin.symbol).toFixed(2)}%
+                    {price > 0 && (
+                      <div className="text-right">
+                         <div className="text-[10px] font-black text-gray-400">
+                          ${price >= 1 
+                            ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                            : price.toFixed(6)}
+                        </div>
+                        <div className="text-[9px] text-gray-600 font-bold uppercase tracking-wider">per {bal.coin?.symbol || "asset"}</div>
+                      </div>
+                    )}
+                 </div>
+                 <div className="space-y-1">
+                    <div className="text-xl lg:text-2xl font-black">
+                      {parseFloat(bal.amount).toFixed(isStable ? 2 : 6)} {bal.coin.symbol}
                     </div>
-                  )}
-               </div>
-               <div className="space-y-1">
-                  <div className="text-xl lg:text-2xl font-black">{parseFloat(bal.amount).toFixed(bal.coin.symbol === 'USDT' ? 2 : 6)} {bal.coin.symbol}</div>
-                  <div className="text-xs lg:text-sm text-gray-500 font-medium">≈ ${(parseFloat(bal.amount) * getCoinPrice(bal.coin.symbol)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-               </div>
-            </motion.div>
-          )) : (
+                    <div className="text-xs lg:text-sm font-bold text-[var(--secondary)]">
+                      ≈ ${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    </div>
+                 </div>
+              </motion.div>
+            );
+          }) : (
             <div className="col-span-full py-12 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-[2rem]">
                <p className="text-gray-500 text-sm">No assets found. Start by generating a wallet address.</p>
             </div>
@@ -169,14 +196,14 @@ export default function DashboardPage() {
                     <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0 ${tx.type === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                       {tx.type === 'deposit' ? <ArrowDownLeft className="w-4 h-4 lg:w-5 lg:h-5" /> : <ArrowUpRight className="w-4 h-4 lg:w-5 lg:h-5" />}
                     </div>
-                    <div>
-                      <div className="font-bold text-sm lg:text-base capitalize">{tx.type} {tx.coin.symbol}</div>
+                     <div>
+                      <div className="font-bold text-sm lg:text-base capitalize">{tx.type} {tx.coin?.symbol || ""}</div>
                       <div className="text-[10px] lg:text-xs text-gray-500">{new Date(tx.timestamp).toLocaleString()}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-bold text-sm lg:text-base ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
-                       {tx.type === 'deposit' ? '+' : '-'}{parseFloat(tx.amount).toFixed(4)} {tx.coin.symbol}
+                     <div className={`font-bold text-sm lg:text-base ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
+                       {tx.type === 'deposit' ? '+' : '-'}{parseFloat(tx.amount).toFixed(4)} {tx.coin?.symbol || ""}
                     </div>
                     <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">{tx.status}</div>
                   </div>

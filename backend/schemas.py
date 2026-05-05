@@ -125,6 +125,14 @@ class WithdrawalRequestCreate(BaseModel):
     network: str
     to_address: str
     amount: Decimal
+    withdrawal_pin: Optional[str] = None  # Required if user has PIN set
+
+class SetWithdrawalPinRequest(BaseModel):
+    current_password: str
+    pin: str  # 6-digit numeric PIN
+
+class VerifyWithdrawalPinRequest(BaseModel):
+    pin: str
 
 class WithdrawalRequestResponse(BaseModel):
     id: int
@@ -157,6 +165,7 @@ class UserSettingsResponse(BaseModel):
     email_notif_login: bool
     email_notif_deposit: bool
     email_notif_withdrawal: bool
+    has_withdrawal_pin: bool = False
     model_config = ConfigDict(from_attributes=True)
 
 class UserSettingsUpdate(BaseModel):
