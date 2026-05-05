@@ -1,10 +1,10 @@
-# Solace Wall Project
+# Core Capital Project
 
 A powerful, secure, and modern cryptocurrency wallet and management platform built with FastAPI and Next.js.
 
 ## 🚀 Overview
 
-Solace Wall is a comprehensive solution for managing cryptocurrency transactions, user wallets, and administrative oversight. It features a robust backend for handling secure transactions and a sleek, responsive frontend for user interaction.
+Core Capital is a comprehensive solution for managing cryptocurrency transactions, user wallets, and administrative oversight.
 
 ## ✨ Key Features
 
@@ -56,8 +56,8 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend` directory:
 ```env
 # App Settings
-APP_NAME="SOLACE WALL PROJECT"
-ISSUER_NAME="Solace"
+APP_NAME="CORE CAPITAL DIGITAL CURRENCY"
+ISSUER_NAME="CapitalTSX"
 FRONTEND_URL="http://localhost:3000"
 
 # Security
@@ -124,4 +124,4 @@ The frontend will be available at `http://localhost:3000`.
 
 ---
 
-Built with ❤️ by the Solace Team.
+Built with ❤️ by the Core Capital Team.

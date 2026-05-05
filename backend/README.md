@@ -1,6 +1,6 @@
-# Solace Wall - Backend API
+# Core Capital - Backend API
 
-This is the backend for the Solace Wall Project, powered by FastAPI.
+This is the backend for the Core Capital Project, powered by FastAPI.
 
 ## Quick Start
 
