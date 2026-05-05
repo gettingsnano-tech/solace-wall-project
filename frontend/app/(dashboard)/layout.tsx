@@ -245,8 +245,8 @@ export default function DashboardLayout({
                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--primary)] text-[var(--background)] flex items-center justify-center font-bold text-xs sm:text-sm">
                   {user?.full_name?.charAt(0) || "U"}
                </div>
-               <div className="hidden sm:block text-sm font-semibold truncate max-w-[100px]">
-                  {user?.full_name?.split(' ')[0] || "User"}
+               <div className="hidden sm:block text-sm font-semibold truncate max-w-[150px]">
+                  {user?.full_name || "User"}
                </div>
             </div>
           </div>
