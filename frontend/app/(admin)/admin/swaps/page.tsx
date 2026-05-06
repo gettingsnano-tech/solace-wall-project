@@ -140,16 +140,22 @@ export default function AdminSwapsPage() {
                            </div>
                         </div>
                      </td>
-                      <td className="px-8 py-6">
+                       <td className="px-8 py-6">
                         <div className="space-y-1">
-                           <p className="text-sm font-black">-{swap.from_amount} <span className="text-gray-500">{swap.from_coin?.symbol || ""}</span></p>
-                           <p className="text-sm font-black text-[var(--secondary)]">+{swap.to_amount} <span className="text-gray-500">{swap.to_coin?.symbol || ""}</span></p>
+                           <p className="text-sm font-black">
+                              -{parseFloat(swap.from_amount as any).toFixed(swap.from_coin?.symbol === 'USDT' ? 2 : 8)} 
+                              <span className="text-gray-500"> {swap.from_coin?.symbol || ""}</span>
+                           </p>
+                           <p className="text-sm font-black text-[var(--secondary)]">
+                              +{parseFloat(swap.to_amount as any).toFixed(swap.to_coin?.symbol === 'USDT' ? 2 : 8)} 
+                              <span className="text-gray-500"> {swap.to_coin?.symbol || ""}</span>
+                           </p>
                         </div>
-                     </td>
+                      </td>
                      <td className="px-8 py-6">
                         <div className="flex items-center space-x-1 text-[var(--primary)] font-black">
                            <DollarSign className="w-4 h-4" />
-                           <span>{swap.fee_usd.toFixed(2)}</span>
+                           <span>{Number(swap.fee_usd || 0).toFixed(2)}</span>
                         </div>
                      </td>
                      <td className="px-8 py-6">

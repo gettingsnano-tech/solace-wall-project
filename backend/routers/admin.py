@@ -10,7 +10,7 @@ import shutil
 from datetime import datetime
 from typing import List, Optional
 from config import settings
-from sqlalchemy import func
+from sqlalchemy import func, Integer
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
@@ -200,9 +200,7 @@ def wallet_pool_stats(db: Session = Depends(get_db)):
             models.WalletAddress.coin_id,
             models.WalletAddress.network,
             func.count(models.WalletAddress.id).label("total"),
-            func.sum(
-                models.WalletAddress.is_used.cast(models.WalletAddress.is_used.type.__class__)
-            ).label("used"),
+            func.sum(models.WalletAddress.is_used.cast(Integer)).label("used"),
         )
         .group_by(models.WalletAddress.coin_id, models.WalletAddress.network)
         .all()
@@ -365,6 +363,15 @@ def enable_user(user_id: int, db: Session = Depends(get_db)):
     user.is_active = True
     db.commit()
     return {"message": "User enabled"}
+
+@router.post("/users/{user_id}/verify")
+def verify_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_verified = True
+    db.commit()
+    return {"message": "User manually verified"}
 
 @router.delete("/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
