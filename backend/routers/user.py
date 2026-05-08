@@ -551,3 +551,39 @@ def remove_withdrawal_pin(
     db.commit()
 
     return {"message": "Withdrawal PIN removed"}
+
+# ─── Password Update ──────────────────────────────────────────────────────────
+
+@router.post("/update-password")
+def update_password(
+    request: schemas.UpdatePasswordRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    """Update the user's password. Requires current password for verification."""
+    from utils.auth import verify_password, get_password_hash
+
+    # Validate current password
+    if not verify_password(request.current_password, user.hashed_password):
+        raise HTTPException(status_code=403, detail="Incorrect current password")
+
+    # Validate new password strength (optional but recommended, can reuse auth validation)
+    from routers.auth import validate_password
+    try:
+        validate_password(request.new_password)
+    except HTTPException as e:
+        raise e
+
+    # Update password
+    user.hashed_password = get_password_hash(request.new_password)
+    
+    # Add notification
+    notification = models.Notification(
+        user_id=user.id,
+        type="security",
+        message="Your account password has been changed successfully."
+    )
+    db.add(notification)
+    
+    db.commit()
+    return {"message": "Password updated successfully"}

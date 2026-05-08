@@ -37,6 +37,12 @@ export default function SettingsPage() {
   const [pinConfirm, setPinConfirm] = useState("");
   const [managingPin, setManagingPin] = useState(false);
 
+  // Password states
+  const [passwordCurrent, setPasswordCurrent] = useState("");
+  const [passwordNew, setPasswordNew] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -143,6 +149,35 @@ export default function SettingsPage() {
       toast.error(error.response?.data?.detail || `Failed to ${pinAction} PIN.`);
     } finally {
       setManagingPin(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordNew !== passwordConfirm) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    if (passwordNew.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      await api.post("/api/user/update-password", {
+        current_password: passwordCurrent,
+        new_password: passwordNew
+      });
+
+      toast.success("Password updated successfully.");
+      setPasswordCurrent("");
+      setPasswordNew("");
+      setPasswordConfirm("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to update password.");
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -311,6 +346,66 @@ export default function SettingsPage() {
                        <span>Setup PIN</span>
                     </button>
                   )}
+               </div>
+            </div>
+
+            {/* Password Update Section */}
+            <div className="glass-card p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem]">
+               <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
+                  <div className="space-y-2">
+                     <h3 className="text-xl lg:text-2xl font-black">Change Password</h3>
+                     <p className="text-xs lg:text-sm text-gray-400 max-w-md">Update your account password. We recommend using a strong, unique password that you don't use elsewhere.</p>
+                  </div>
+                  <div className="w-12 h-12 bg-[var(--primary)]/10 rounded-2xl flex items-center justify-center">
+                    <Lock className="w-6 h-6 text-[var(--primary)]" />
+                  </div>
+               </div>
+
+               <div className="mt-8 border-t border-white/10 pt-8">
+                  <form onSubmit={handleUpdatePassword} className="space-y-6 max-w-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Current Password</label>
+                        <input 
+                          type="password" 
+                          required
+                          className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm"
+                          placeholder="••••••••"
+                          value={passwordCurrent}
+                          onChange={(e) => setPasswordCurrent(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">New Password</label>
+                        <input 
+                          type="password" 
+                          required
+                          className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm"
+                          placeholder="••••••••"
+                          value={passwordNew}
+                          onChange={(e) => setPasswordNew(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Confirm New Password</label>
+                        <input 
+                          type="password" 
+                          required
+                          className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-4 px-6 focus:outline-none focus:border-[var(--primary)] text-sm"
+                          placeholder="••••••••"
+                          value={passwordConfirm}
+                          onChange={(e) => setPasswordConfirm(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={updatingPassword}
+                      className="btn-primary py-4 px-10 w-full sm:w-auto flex items-center justify-center space-x-2"
+                    >
+                       {updatingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Update Password</span>}
+                    </button>
+                  </form>
                </div>
             </div>
          </motion.div>
