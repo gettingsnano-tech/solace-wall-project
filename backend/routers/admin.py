@@ -338,6 +338,31 @@ def reject_withdrawal(id: int, db: Session = Depends(get_db), admin: models.User
 def get_user_balances_admin(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.Balance).filter(models.Balance.user_id == user_id).all()
 
+@router.put("/users/{user_id}/balances/{coin_id}")
+def set_user_balance(user_id: int, coin_id: int, payload: schemas.SetBalanceRequest, db: Session = Depends(get_db)):
+    """Directly set (overwrite) a user's balance for a given coin."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    coin = db.query(models.Coin).filter(models.Coin.id == coin_id).first()
+    if not coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+
+    balance = db.query(models.Balance).filter(
+        models.Balance.user_id == user_id,
+        models.Balance.coin_id == coin_id
+    ).first()
+
+    if balance:
+        balance.amount = payload.amount
+    else:
+        balance = models.Balance(user_id=user_id, coin_id=coin_id, amount=payload.amount)
+        db.add(balance)
+
+    db.commit()
+    return {"message": f"Balance updated to {payload.amount} {coin.symbol}"}
+
 @router.get("/users/{user_id}/wallets", response_model=List[schemas.UserWalletResponse])
 def get_user_wallets_admin(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.UserWallet).filter(models.UserWallet.user_id == user_id).all()

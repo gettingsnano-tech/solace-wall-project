@@ -11,7 +11,10 @@ import {
   Loader2, 
   ShieldCheck,
   CreditCard,
-  ChevronDown
+  ChevronDown,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -34,6 +37,11 @@ export default function AdminUserDetailPage() {
   });
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Inline balance edit state
+  const [editingCoinId, setEditingCoinId] = useState<number | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -95,6 +103,26 @@ export default function AdminUserDetailPage() {
     }
   };
 
+  const handleSetBalance = async (coinId: number, coinSymbol: string) => {
+    const val = parseFloat(editAmount);
+    if (isNaN(val) || val < 0) {
+      toast.error("Please enter a valid non-negative amount.");
+      return;
+    }
+    setEditLoading(true);
+    try {
+      await api.put(`/api/admin/users/${id}/balances/${coinId}`, { amount: val });
+      toast.success(`${coinSymbol} balance updated to ${val}.`);
+      setEditingCoinId(null);
+      setEditAmount("");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to update balance.");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const handleUserAction = async (action: string) => {
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
     
@@ -106,7 +134,13 @@ export default function AdminUserDetailPage() {
         router.push("/admin/users");
       } else {
         await api.post(`/api/admin/users/${id}/${action}`);
-        toast.success(`User account ${action}ed.`);
+        const messages: Record<string, string> = {
+          enable: "User account enabled.",
+          disable: "User account disabled.",
+          verify: "User email has been verified.",
+          "reset-password": "User password has been reset.",
+        };
+        toast.success(messages[action] || `Action '${action}' completed.`);
         fetchData();
       }
     } catch (error: any) {
@@ -165,19 +199,78 @@ export default function AdminUserDetailPage() {
                   {coins.map((coin: any, idx) => {
                     const balance = balances.find((b: any) => b.coin.id === coin.id);
                     const amount = balance ? parseFloat(balance.amount) : 0;
+                    const isEditing = editingCoinId === coin.id;
                     return (
-                      <div key={idx} className="bg-white/[0.03] border border-white/5 p-6 rounded-2xl flex justify-between items-center group hover:border-[var(--primary)]/20 transition-all">
-                        <div className="flex items-center space-x-4">
+                      <div key={idx} className={`bg-white/[0.03] border p-6 rounded-2xl group transition-all ${
+                        isEditing
+                          ? 'border-[var(--primary)]/50 bg-white/[0.05]'
+                          : 'border-white/5 hover:border-[var(--primary)]/20'
+                      }`}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
                             <img src={coin.icon_url} alt={coin.symbol} className="w-8 h-8 rounded-full" />
                             <div>
-                                <div className="font-bold text-sm tracking-tight">{coin.name}</div>
-                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{coin.symbol}</div>
+                              <div className="font-bold text-sm tracking-tight">{coin.name}</div>
+                              <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{coin.symbol}</div>
                             </div>
+                          </div>
+                          {!isEditing ? (
+                            <button
+                              onClick={() => {
+                                setEditingCoinId(coin.id);
+                                setEditAmount(amount.toFixed(coin.symbol === 'USDT' ? 2 : 6));
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-[var(--primary)]/10 text-gray-500 hover:text-[var(--primary)] transition-all"
+                              title="Edit balance"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          ) : (
+                            <div className="flex items-center space-x-1">
+                              <button
+                                onClick={() => handleSetBalance(coin.id, coin.symbol)}
+                                disabled={editLoading}
+                                className="p-1.5 rounded-lg bg-[var(--primary)]/20 hover:bg-[var(--primary)]/40 text-[var(--primary)] transition-all"
+                                title="Save"
+                              >
+                                {editLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => { setEditingCoinId(null); setEditAmount(""); }}
+                                disabled={editLoading}
+                                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 transition-all"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
+
+                        {isEditing ? (
+                          <div className="mt-1">
+                            <input
+                              type="number"
+                              autoFocus
+                              min="0"
+                              step={coin.symbol === 'USDT' ? '0.01' : '0.000001'}
+                              value={editAmount}
+                              onChange={(e) => setEditAmount(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSetBalance(coin.id, coin.symbol);
+                                if (e.key === 'Escape') { setEditingCoinId(null); setEditAmount(""); }
+                              }}
+                              className="w-full bg-[#0A0E1A] border border-[var(--primary)]/40 rounded-xl py-2.5 px-4 text-sm font-mono font-bold focus:outline-none focus:border-[var(--primary)] transition-colors"
+                              placeholder={coin.symbol === 'USDT' ? '0.00' : '0.00000000'}
+                            />
+                            <p className="text-[10px] text-gray-600 mt-1.5 pl-1">Enter new balance · Enter to save · Esc to cancel</p>
+                          </div>
+                        ) : (
+                          <div className="text-right">
                             <div className="font-mono text-sm font-bold">{amount.toFixed(coin.symbol === 'USDT' ? 2 : 6)}</div>
                             <div className="text-[10px] text-gray-600 font-bold">Balance</div>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -256,6 +349,23 @@ export default function AdminUserDetailPage() {
                  >
                     {user.is_active ? 'Disable Account' : 'Enable Account'}
                  </button>
+
+                 {/* Email Verification Control */}
+                 {user.is_verified ? (
+                   <div className="w-full flex items-center justify-center space-x-2 bg-green-500/10 text-green-400 text-sm font-bold py-4 rounded-2xl border border-green-500/20">
+                     <ShieldCheck className="w-4 h-4" />
+                     <span>Email Verified</span>
+                   </div>
+                 ) : (
+                   <button
+                     onClick={() => handleUserAction('verify')}
+                     disabled={actionLoading}
+                     className="w-full bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-[#0A0E1A] text-sm font-bold py-4 rounded-2xl transition-all border border-amber-500/20"
+                   >
+                     Verify Email
+                   </button>
+                 )}
+
                  <button 
                   onClick={() => handleUserAction('reset-password')}
                   disabled={actionLoading}

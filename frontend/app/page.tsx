@@ -197,7 +197,7 @@ export default function Home() {
         <meta property="og:type" content="website" />
       </Head>
 
-      <main className="flex flex-col w-full overflow-hidden">
+      <main className="flex flex-col w-full overflow-y-scroll">
 
         {/* ── SECTION 1: HERO ───────────────────────────────────────────── */}
         <section id="hero" className="relative min-h-screen flex items-center justify-center pt-48 pb-20 overflow-hidden">

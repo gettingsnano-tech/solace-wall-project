@@ -103,14 +103,21 @@
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: #0A0E1A;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--muted);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 4px;
+  border: 2px solid #0A0E1A;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--color-primary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) #0A0E1A;
 }
 
 .no-scrollbar::-webkit-scrollbar {

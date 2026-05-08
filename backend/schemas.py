@@ -150,6 +150,9 @@ class TopUpRequest(BaseModel):
     amount: Decimal
     notes: Optional[str] = None
 
+class SetBalanceRequest(BaseModel):
+    amount: Decimal
+
 class MarketCoin(BaseModel):
     id: str
     name: str
