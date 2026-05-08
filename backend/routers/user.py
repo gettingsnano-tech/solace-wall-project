@@ -52,7 +52,12 @@ def generate_wallet(coin_id: int, db: Session = Depends(get_db), user: models.Us
         raise HTTPException(status_code=404, detail="No available addresses for this coin. Please contact support.")
     
     address.is_used = True
-    user_wallet = models.UserWallet(user_id=user.id, coin_id=coin_id, address_id=address.id)
+    user_wallet = models.UserWallet(
+        user_id=user.id, 
+        coin_id=coin_id, 
+        address_id=address.id,
+        network=address.network
+    )
     db.add(user_wallet)
     db.commit()
     db.refresh(user_wallet)

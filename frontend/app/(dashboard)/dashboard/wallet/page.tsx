@@ -128,7 +128,7 @@ export default function WalletPage() {
                   <div className="space-y-2 lg:space-y-3">
                     <label className="text-[9px] lg:text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Network</label>
                     <div className="bg-[#0A0E1A] border border-white/10 p-3 lg:p-4 rounded-xl lg:rounded-2xl flex items-center justify-between">
-                      <span className="font-bold text-xs lg:text-sm text-[var(--secondary)]">{wallet.network}</span>
+                      <span className="font-bold text-xs lg:text-sm text-[var(--secondary)]">{wallet.network || wallet.address.network}</span>
                       <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-[var(--secondary)] animate-pulse"></div>
                     </div>
                   </div>
