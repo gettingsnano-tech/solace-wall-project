@@ -273,7 +273,7 @@ export default function AdminWalletsPage() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  onClick={handleBulkDelete}
+                  onClick={() => handleBulkDelete()}
                   disabled={deletingBulk}
                   className="bg-red-500/10 hover:bg-red-500/20 text-red-500 flex items-center space-x-2 py-2.5 px-6 rounded-full transition-all text-xs font-black uppercase tracking-widest border border-red-500/20"
                 >
