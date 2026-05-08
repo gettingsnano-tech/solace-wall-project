@@ -148,61 +148,31 @@ export default function AdminWalletsPage() {
   };
 
   const handleDeleteOne = async (id: number, address: string, isUsed: boolean) => {
-    let force = false;
-    if (isUsed) {
-      if (!window.confirm(`This address is currently assigned to a user. Deleting it will also remove their wallet assignment. Are you sure you want to proceed?`)) {
-        return;
-      }
-      force = true;
-    } else {
-      if (!window.confirm(`Are you sure you want to delete the address ${address}?`)) return;
-    }
+    const msg = isUsed 
+      ? `This address is assigned to a user. Deleting it will also remove their wallet assignment. Are you sure?`
+      : `Are you sure you want to delete the address ${address}?`;
+    
+    if (!window.confirm(msg)) return;
 
     try {
-      await api.delete(`/api/admin/wallets/${id}`, { params: { force } });
+      await api.delete(`/api/admin/wallets/${id}`);
       toast.success("Address deleted!");
       fetchData();
     } catch (error: any) {
-      const detail = error.response?.data?.detail;
-      if (error.response?.status === 409) {
-          if (window.confirm(`${detail}\n\nDo you want to force delete it?`)) {
-              await api.delete(`/api/admin/wallets/${id}`, { params: { force: true } });
-              toast.success("Address deleted!");
-              fetchData();
-              return;
-          }
-      }
-      toast.error(detail || "Failed to delete address");
+      toast.error(error.response?.data?.detail || "Failed to delete address");
     }
   };
 
-  const handleBulkDelete = async (force: boolean = false) => {
-    if (!force) {
-      if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} address(es)?`)) return;
-    }
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} address(es)? Any user assignments will also be removed.`)) return;
 
     setDeletingBulk(true);
     try {
       const { data } = await api.delete("/api/admin/wallets/bulk", { 
-        data: selectedIds,
-        params: { force }
+        data: selectedIds
       });
       
-      if (data.skipped && data.skipped.length > 0) {
-        const skippedCount = data.skipped.length;
-        const assignedEmails = data.skipped
-            .filter((s: any) => s.reason === "assigned to a user")
-            .map((s: any) => s.user_email)
-            .join(", ");
-        
-        if (window.confirm(`${data.message}\n\nAssigned to: ${assignedEmails}\n\nForce delete all selected addresses (including assignments)?`)) {
-            await handleBulkDelete(true);
-            return;
-        }
-      } else {
-        toast.success(data.message || "Addresses deleted!");
-      }
-      
+      toast.success(data.message || "Addresses deleted!");
       setSelectedIds([]);
       fetchData();
     } catch (error: any) {
