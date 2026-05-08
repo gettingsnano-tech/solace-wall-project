@@ -148,6 +148,7 @@ class WithdrawalRequest(Base):
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     user = relationship("User", back_populates="withdrawal_requests", foreign_keys=[user_id])
+    coin = relationship("Coin")
     reviewer = relationship("User", foreign_keys=[reviewed_by])
 
 class PlatformSettings(Base):

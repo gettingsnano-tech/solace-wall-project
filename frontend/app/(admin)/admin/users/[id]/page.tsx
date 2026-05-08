@@ -42,6 +42,15 @@ export default function AdminUserDetailPage() {
   const [editingCoinId, setEditingCoinId] = useState<number | null>(null);
   const [editAmount, setEditAmount] = useState("");
   const [editLoading, setEditLoading] = useState(false);
+  const [showFullEmail, setShowFullEmail] = useState(false);
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [name, domain] = email.split("@");
+    if (!name || !domain) return email;
+    const maskedName = name.length > 2 ? `${name.substring(0, 2)}***` : `${name.charAt(0)}***`;
+    return `${maskedName}@${domain}`;
+  };
 
   const fetchData = async () => {
     try {
@@ -168,7 +177,13 @@ export default function AdminUserDetailPage() {
             <div>
                <h1 className="text-3xl font-black">{user.full_name}</h1>
                <div className="flex items-center space-x-2">
-                  <p className="text-gray-400 text-sm font-medium">{user.email}</p>
+                  <p 
+                    className="text-gray-400 text-sm font-medium cursor-pointer hover:text-white transition-colors"
+                    onClick={() => setShowFullEmail(!showFullEmail)}
+                    title="Click to toggle full email"
+                   >
+                     {showFullEmail ? user.email : maskEmail(user.email)}
+                  </p>
                   <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${user.is_active ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                     {user.is_active ? 'Active' : 'Disabled'}
                   </span>

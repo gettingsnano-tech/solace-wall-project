@@ -172,11 +172,75 @@ def bulk_create_wallet_addresses(payload: schemas.BulkWalletCreate, db: Session 
         db.refresh(a)
     return created
 
-@router.delete("/wallets/bulk")
-def bulk_delete_wallet_addresses(ids: List[int], db: Session = Depends(get_db)):
-    db.query(models.WalletAddress).filter(models.WalletAddress.id.in_(ids)).delete(synchronize_session=False)
+@router.delete("/wallets/{wallet_id}")
+def delete_wallet_address(wallet_id: int, force: bool = False, db: Session = Depends(get_db)):
+    """Delete a single wallet address.
+    If the address is assigned to a user and force=True, the UserWallet assignment
+    is removed first. Otherwise a 409 error is returned."""
+    address = db.query(models.WalletAddress).filter(models.WalletAddress.id == wallet_id).first()
+    if not address:
+        raise HTTPException(status_code=404, detail="Wallet address not found")
+
+    user_wallet = db.query(models.UserWallet).filter(models.UserWallet.address_id == wallet_id).first()
+    if user_wallet:
+        user = db.query(models.User).filter(models.User.id == user_wallet.user_id).first()
+        user_email = user.email if user else "Unknown User"
+        if not force:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Address is currently assigned to user: {user_email}. Both the assignment and the address will be deleted if you proceed."
+            )
+        # Force: remove the user assignment first
+        db.delete(user_wallet)
+
+    db.delete(address)
     db.commit()
-    return {"message": f"Successfully deleted {len(ids)} addresses"}
+    return {"message": "Wallet address deleted successfully"}
+
+@router.delete("/wallets/bulk")
+def bulk_delete_wallet_addresses(ids: List[int], force: bool = False, db: Session = Depends(get_db)):
+    """Bulk delete wallet addresses.
+    Addresses assigned to users are skipped unless force=True, in which case
+    their UserWallet assignments are removed before deletion."""
+    deleted = []
+    skipped = []
+
+    addresses = db.query(models.WalletAddress).filter(models.WalletAddress.id.in_(ids)).all()
+    address_map = {a.id: a for a in addresses}
+
+    # Find all user-wallet assignments for these IDs in one query
+    assigned = db.query(models.UserWallet).filter(models.UserWallet.address_id.in_(ids)).all()
+    assigned_ids = {uw.address_id: uw for uw in assigned}
+
+    for addr_id in ids:
+        address = address_map.get(addr_id)
+        if not address:
+            skipped.append({"id": addr_id, "reason": "not found"})
+            continue
+
+        if addr_id in assigned_ids:
+            user_wallet = assigned_ids[addr_id]
+            user = db.query(models.User).filter(models.User.id == user_wallet.user_id).first()
+            user_email = user.email if user else "Unknown User"
+            if not force:
+                skipped.append({
+                    "id": addr_id, 
+                    "reason": "assigned to a user", 
+                    "user_email": user_email
+                })
+                continue
+            # Force: remove the user wallet assignment first
+            db.delete(user_wallet)
+
+        db.delete(address)
+        deleted.append(addr_id)
+
+    db.commit()
+    return {
+        "message": f"Deleted {len(deleted)} address(es), skipped {len(skipped)}.",
+        "deleted": deleted,
+        "skipped": skipped,
+    }
 
 @router.get("/wallets", response_model=List[schemas.WalletAddressResponse])
 def list_wallets(

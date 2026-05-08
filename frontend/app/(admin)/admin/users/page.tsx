@@ -12,13 +12,29 @@ import {
   Calendar
 } from "lucide-react";
 import { motion } from "framer-motion";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [revealedEmails, setRevealedEmails] = useState<Record<number, boolean>>({});
+
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [name, domain] = email.split("@");
+    if (!name || !domain) return email;
+    const maskedName = name.length > 2 ? `${name.substring(0, 2)}***` : `${name.charAt(0)}***`;
+    return `${maskedName}@${domain}`;
+  };
+
+  const toggleEmail = (id: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setRevealedEmails(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -86,7 +102,8 @@ export default function AdminUsersPage() {
                        initial={{ opacity: 0, y: 5 }}
                        animate={{ opacity: 1, y: 0 }}
                        transition={{ delay: idx * 0.05 }}
-                       className="group hover:bg-white/[0.02]"
+                       className="group hover:bg-white/[0.02] cursor-pointer"
+                       onClick={() => router.push(`/admin/users/${user.id}`)}
                     >
                        <td className="px-8 py-6">
                           <div className="flex items-center space-x-4">
@@ -95,10 +112,14 @@ export default function AdminUsersPage() {
                              </div>
                              <div>
                                 <div className="font-bold">{user.full_name}</div>
-                                <div className="text-xs text-gray-500 flex items-center space-x-1">
-                                   <Mail className="w-3 h-3" />
-                                   <span>{user.email}</span>
-                                </div>
+                                 <div 
+                                    className="text-xs text-gray-500 flex items-center space-x-1 cursor-pointer hover:text-white transition-colors"
+                                    onClick={(e) => toggleEmail(user.id, e)}
+                                    title="Click to toggle full email"
+                                 >
+                                    <Mail className="w-3 h-3" />
+                                    <span>{revealedEmails[user.id] ? user.email : maskEmail(user.email)}</span>
+                                 </div>
                              </div>
                           </div>
                        </td>
@@ -121,13 +142,12 @@ export default function AdminUsersPage() {
                           </div>
                        </td>
                        <td className="px-8 py-6 text-right">
-                          <Link 
-                            href={`/admin/users/${user.id}`}
-                            className="bg-white/[0.05] hover:bg-[var(--primary)] hover:text-[var(--background)] px-4 py-2 rounded-xl text-xs font-bold transition-all inline-flex items-center space-x-2"
+                          <div 
+                            className="bg-white/[0.05] group-hover:bg-[var(--primary)] group-hover:text-[var(--background)] px-4 py-2 rounded-xl text-xs font-bold transition-all inline-flex items-center space-x-2"
                           >
                              <span>Manage</span>
                              <ArrowRight className="w-3 h-3" />
-                          </Link>
+                          </div>
                        </td>
                     </motion.tr>
                   )) : (
