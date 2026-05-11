@@ -5,13 +5,14 @@ class Settings(BaseSettings):
     # App Settings
     APP_NAME: str
 
-    # SMTP Settings
+    # Email Settings (Brevo REST API)
+    BREVO_API_KEY: str
     SMTP_2_COMPANY_NAME: str
     SMTP_2_FROM_EMAIL: str
-    SMTP_2_HOST: str
-    SMTP_2_PORT: int
-    SMTP_2_USER: str
-    SMTP_2_PASSWORD: str
+    SMTP_2_HOST: str = ""
+    SMTP_2_PORT: int = 0
+    SMTP_2_USER: str = ""
+    SMTP_2_PASSWORD: str = ""
 
     # Database Settings
     DATABASE_URL: str

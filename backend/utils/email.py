@@ -1,29 +1,46 @@
 import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from config import settings
 import threading
+import urllib.request
+import urllib.error
+import json
+from config import settings
+
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 def send_email_async(to_email: str, subject: str, body: str):
     """
-    Sends an email using SMTP in a separate thread.
+    Sends an email using the Brevo REST API in a separate thread.
     """
     def send():
         try:
-            msg = MIMEMultipart()
-            msg['From'] = f"{settings.APP_NAME} <{settings.SMTP_2_FROM_EMAIL}>"
-            msg['To'] = to_email
-            msg['Subject'] = subject
+            payload = json.dumps({
+                "sender": {
+                    "name": settings.SMTP_2_COMPANY_NAME,
+                    "email": settings.SMTP_2_FROM_EMAIL,
+                },
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": body,
+            }).encode("utf-8")
 
-            msg.attach(MIMEText(body, 'html'))
+            req = urllib.request.Request(
+                BREVO_API_URL,
+                data=payload,
+                headers={
+                    "api-key": settings.BREVO_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                method="POST",
+            )
 
-            with smtplib.SMTP(settings.SMTP_2_HOST, settings.SMTP_2_PORT) as server:
-                server.starttls()
-                server.login(settings.SMTP_2_USER, settings.SMTP_2_PASSWORD)
-                server.send_message(msg)
-            
-            print(f"[{datetime.datetime.now()}] [EMAIL SENT] To: {to_email} Subject: {subject}")
+            with urllib.request.urlopen(req) as response:
+                status = response.status
+
+            print(f"[{datetime.datetime.now()}] [EMAIL SENT] To: {to_email} Subject: {subject} Status: {status}")
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace")
+            print(f"[{datetime.datetime.now()}] [EMAIL ERROR] Failed to send email to {to_email}: HTTP {e.code} {error_body}")
         except Exception as e:
             print(f"[{datetime.datetime.now()}] [EMAIL ERROR] Failed to send email to {to_email}: {e}")
 
