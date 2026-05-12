@@ -7,6 +7,7 @@ interface User {
   full_name: string;
   role: string;
   is_verified: boolean;
+  kyc_status?: string;
 }
 
 interface AuthState {
