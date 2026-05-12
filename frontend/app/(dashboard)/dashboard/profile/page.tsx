@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import Link from "next/link";
 import { useAuthStore } from "@/lib/store";
 
 export default function ProfilePage() {
@@ -161,6 +162,18 @@ export default function ProfilePage() {
                    <p className="font-bold">{new Date(user.created_at).toLocaleDateString()}</p>
                 </div>
              </div>
+          </div>
+
+          <div className="glass-card p-6 rounded-3xl space-y-4">
+             <h4 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Account Security</h4>
+             <p className="text-[10px] text-gray-500">Manage your withdrawal PIN, 2FA, and password in the security center.</p>
+             <Link 
+               href="/dashboard/settings"
+               className="btn-secondary py-2.5 px-4 w-full text-[10px] uppercase font-black flex items-center justify-center space-x-2"
+             >
+                <ShieldCheck className="w-3 h-3" />
+                <span>Security Center</span>
+             </Link>
           </div>
         </div>
 
