@@ -143,13 +143,20 @@ export default function TransactionsPage() {
                           )}
                        </td>
                        <td className="px-4 lg:px-6 py-4 lg:py-6 font-mono font-bold text-xs lg:text-sm">
-                          {tx.isSwap ? (
+                           {tx.isSwap ? (
                             <div className="space-y-0.5">
                                <div className="text-red-500 text-[10px] lg:text-xs">-{parseFloat(tx.from_amount).toFixed(8)} {tx.from_coin?.symbol || ""}</div>
                                <div className="text-green-500 text-[10px] lg:text-xs">+{parseFloat(tx.to_amount).toFixed(8)} {tx.to_coin?.symbol || ""}</div>
                             </div>
                           ) : (
-                            parseFloat(tx.amount).toFixed(tx.coin.symbol === 'USDT' ? 2 : 6)
+                            <div className="space-y-1">
+                               <div className="font-mono">{parseFloat(tx.amount).toFixed(tx.coin?.symbol === 'USDT' ? 2 : 6)}</div>
+                               {tx.type === 'withdrawal' && tx.to_address && (
+                                  <div className="text-[9px] lg:text-[10px] text-gray-500 font-mono break-all max-w-[150px] lg:max-w-[200px] leading-tight">
+                                     To: {tx.to_address}
+                                  </div>
+                               )}
+                            </div>
                           )}
                        </td>
                        <td className="px-4 lg:px-6 py-4 lg:py-6">

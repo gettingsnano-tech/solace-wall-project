@@ -63,7 +63,6 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.LoginResponse)
 def login(request: Request, response: Response, user_data: schemas.UserLogin, db: Session = Depends(get_db)):
-    # Note: Using UserCreate schema for login (email/password), we can refine this
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if not user or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
@@ -72,11 +71,56 @@ def login(request: Request, response: Response, user_data: schemas.UserLogin, db
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # if not user.is_verified:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Email not verified. Please check your inbox."
-    #     )
+    # Generate and send OTP
+    import random
+    from datetime import datetime, timedelta
+    otp_code = "".join([str(random.randint(0, 9)) for _ in range(6)])
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    
+    # Save OTP to DB
+    db_otp = models.LoginOTP(email=user.email, code=otp_code, expires_at=expires_at)
+    db.add(db_otp)
+    db.commit()
+    
+    # Send OTP email
+    from utils.email import send_email_async
+    subject = "Your Login Verification Code"
+    body = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #333;">Verification Code</h2>
+        <p>Dear user,</p>
+        <p>Your login verification code is:</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #007bff; background: #f0f7ff; padding: 15px 30px; border-radius: 10px; border: 1px dashed #007bff;">{otp_code}</span>
+        </div>
+        <p>This code will expire in 10 minutes. If you did not attempt to log in, please secure your account.</p>
+        <p>Thank you for using {settings.SMTP_2_COMPANY_NAME}.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #888;">This is an automated message. Please do not reply.</p>
+    </div>
+    """
+    send_email_async(user.email, subject, body)
+    
+    return {"message": "Verification code sent to your email", "otp_required": true, "role": None, "is_verified": None}
+
+@router.post("/verify-otp", response_model=schemas.LoginResponse)
+def verify_otp(request: Request, response: Response, data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
+    from datetime import datetime
+    db_otp = db.query(models.LoginOTP).filter(
+        models.LoginOTP.email == data.email,
+        models.LoginOTP.code == data.code,
+        models.LoginOTP.expires_at > datetime.utcnow()
+    ).first()
+    
+    if not db_otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code")
+    
+    user = db.query(models.User).filter(models.User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Success - Delete used OTP
+    db.delete(db_otp)
     
     access_token = create_access_token(data={"sub": user.email, "role": user.role})
     
@@ -91,7 +135,6 @@ def login(request: Request, response: Response, user_data: schemas.UserLogin, db
 
     # Send login email if enabled
     if user.email_notif_login:
-        from datetime import datetime
         send_login_email(user.email, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), request.client.host)
     
     # Set httpOnly cookie
@@ -104,7 +147,7 @@ def login(request: Request, response: Response, user_data: schemas.UserLogin, db
         secure=settings.COOKIE_SECURE
     )
     
-    return {"message": "Logged in successfully", "role": user.role, "is_verified": user.is_verified}
+    return {"message": "Logged in successfully", "role": user.role, "is_verified": user.is_verified, "otp_required": false}
 
 @router.post("/resend-verification")
 def resend_verification(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

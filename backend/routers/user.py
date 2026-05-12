@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+import os
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
@@ -181,7 +182,7 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
 
     # Send email if notification is enabled
     if user.email_notif_withdrawal:
-        send_withdrawal_email(user.email, float(request.amount), coin_symbol)
+        send_withdrawal_email(user.email, float(request.amount), coin_symbol, request.to_address)
 
     return {"message": "Withdrawal request submitted for approval. An email has been sent to you."}
 
@@ -587,3 +588,60 @@ def update_password(
     
     db.commit()
     return {"message": "Password updated successfully"}
+
+# ─── KYC ──────────────────────────────────────────────────────────────────────
+
+@router.post("/kyc/submit")
+async def submit_kyc(
+    document_type: str = Form(...),
+    document_front: UploadFile = File(...),
+    document_back: UploadFile = File(None),
+    selfie: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    if user.kyc_status == "approved":
+        raise HTTPException(status_code=400, detail="KYC is already approved")
+    
+    upload_dir = "uploads/kyc"
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+        
+    # Save files
+    import shutil
+    import os
+    
+    front_path = os.path.join(upload_dir, f"{user.id}_front_{document_front.filename}")
+    with open(front_path, "wb") as buffer:
+        shutil.copyfileobj(document_front.file, buffer)
+        
+    back_path = None
+    if document_back:
+        back_path = os.path.join(upload_dir, f"{user.id}_back_{document_back.filename}")
+        with open(back_path, "wb") as buffer:
+            shutil.copyfileobj(document_back.file, buffer)
+            
+    selfie_path = os.path.join(upload_dir, f"{user.id}_selfie_{selfie.filename}")
+    with open(selfie_path, "wb") as buffer:
+        shutil.copyfileobj(selfie.file, buffer)
+        
+    user.kyc_status = "pending"
+    user.kyc_document_type = document_type
+    user.kyc_document_front = f"/{front_path}"
+    user.kyc_document_back = f"/{back_path}" if back_path else None
+    user.kyc_selfie = f"/{selfie_path}"
+    user.kyc_submitted_at = datetime.utcnow()
+    
+    db.commit()
+    return {"message": "KYC submitted successfully and is under review"}
+
+@router.put("/settings/profile")
+def update_profile(
+    update: dict,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    if "full_name" in update:
+        user.full_name = update["full_name"]
+    db.commit()
+    return {"message": "Profile updated successfully"}

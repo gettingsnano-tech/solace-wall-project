@@ -13,6 +13,8 @@ export default function LoginPage() {
   const router = useRouter();
   const { setUser, fetchMe } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -32,27 +34,52 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await api.post("/api/auth/login", formData);
-      toast.success("Welcome back!");
       
-      // Fetch user profile after login
-      const profileRes = await api.get("/api/auth/me");
-      const userData = profileRes.data;
-      setUser(userData);
-      
-      if (!userData.is_verified) {
-        router.push("/auth/verify-required");
-        return;
-      }
-
-      if (userData.role === "admin") {
-        router.push("/admin");
+      if (data.otp_required) {
+        setOtpRequired(true);
+        toast.success("Verification code sent to your email.");
       } else {
-        router.push("/dashboard");
+        await finalizeLogin(data);
       }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Login failed. Please check your credentials.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await api.post("/api/auth/verify-otp", {
+        email: formData.email,
+        code: otpCode
+      });
+      await finalizeLogin(data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Invalid or expired verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const finalizeLogin = async (data: any) => {
+    toast.success("Welcome back!");
+    // Fetch user profile after login
+    const profileRes = await api.get("/api/auth/me");
+    const userData = profileRes.data;
+    setUser(userData);
+    
+    if (!userData.is_verified) {
+      router.push("/auth/verify-required");
+      return;
+    }
+
+    if (userData.role === "admin") {
+      router.push("/admin");
+    } else {
+      router.push("/dashboard");
     }
   };
 
@@ -69,61 +96,97 @@ export default function LoginPage() {
       >
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-[var(--primary)]/20">
-            <Lock className="text-[var(--background)] w-8 h-8" />
+            {otpRequired ? <Shield className="text-[var(--background)] w-8 h-8" /> : <Lock className="text-[var(--background)] w-8 h-8" />}
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-gray-400">Securely access your digital assets.</p>
+          <h1 className="text-3xl font-bold mb-2">{otpRequired ? "Verify Account" : "Welcome Back"}</h1>
+          <p className="text-gray-400">
+            {otpRequired ? `We've sent a code to ${formData.email}` : "Securely access your digital assets."}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input 
-                type="email" 
-                required
-                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-4 pl-12 pr-6 focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
-                placeholder="name@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
+        {!otpRequired ? (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input 
+                  type="email" 
+                  required
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-4 pl-12 pr-6 focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
+                  placeholder="name@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-             <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
-                <Link href="/auth/forgot-password" className="text-xs font-bold text-[var(--primary)] hover:underline">Forgot?</Link>
-             </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                required
-                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-4 pl-12 pr-12 focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+            <div className="space-y-2">
+               <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
+                  <Link href="/auth/forgot-password" className="text-xs font-bold text-[var(--primary)] hover:underline">Forgot?</Link>
+               </div>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-4 pl-12 pr-12 focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full btn-primary py-4 rounded-2xl text-lg flex items-center justify-center space-x-2"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
-          </button>
-        </form>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full btn-primary py-4 rounded-2xl text-lg flex items-center justify-center space-x-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 text-center block">Verification Code</label>
+              <input 
+                type="text" 
+                required
+                maxLength={6}
+                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-5 px-6 text-center text-3xl font-black tracking-[0.5em] focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
+                placeholder="000000"
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+              />
+              <p className="text-[10px] text-gray-500 text-center pt-2">Enter the 6-digit code sent to your inbox.</p>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full btn-primary py-4 rounded-2xl text-lg flex items-center justify-center space-x-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify & Login</span>}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => setOtpRequired(false)}
+              className="w-full text-xs font-bold text-gray-500 hover:text-white transition-colors"
+            >
+              Back to Login
+            </button>
+          </form>
+        )}
 
         <div className="mt-8 text-center pt-8 border-t border-white/[0.05]">
           <p className="text-gray-400 text-sm">

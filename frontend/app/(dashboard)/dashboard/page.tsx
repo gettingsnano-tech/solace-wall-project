@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import api from "@/lib/api";
+import { useAuthStore } from "@/lib/store";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { 
   Wallet, 
@@ -19,6 +20,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
   const [balances, setBalances] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [platformStats, setPlatformStats] = useState<any>(null);
@@ -122,6 +124,26 @@ export default function DashboardPage() {
                    <p className="text-[10px] text-[var(--secondary)] font-bold uppercase tracking-widest mt-1">{platformStats?.uptime === '99.99%' ? 'Operational' : platformStats?.uptime || 'Operational'}</p>
                 </div>
             </div>
+            {/* KYC Status Shortcut */}
+            <Link href="/dashboard/profile" className="glass-card p-5 lg:p-8 rounded-[1.5rem] lg:rounded-[2rem] flex items-center space-x-4 lg:space-x-6 hover:bg-white/[0.03] transition-colors">
+                <div className={`w-10 h-10 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center shrink-0 ${
+                  user?.kyc_status === 'approved' ? 'bg-green-500/10 text-green-500' : 
+                  user?.kyc_status === 'pending' ? 'bg-orange-500/10 text-orange-500' : 
+                  'bg-red-500/10 text-red-500'
+                }`}>
+                   <ShieldCheck className="w-6 h-6 lg:w-8 lg:h-8" />
+                </div>
+                <div>
+                   <h4 className="font-bold text-sm lg:text-base">Identity Verification</h4>
+                   <p className="text-[10px] font-bold uppercase tracking-widest mt-1">
+                      Status: <span className={
+                        user?.kyc_status === 'approved' ? 'text-green-500' : 
+                        user?.kyc_status === 'pending' ? 'text-orange-500' : 
+                        'text-red-500'
+                      }>{user?.kyc_status?.replace('_', ' ') || 'Not Verified'}</span>
+                   </p>
+                </div>
+            </Link>
          </div>
       </div>
 

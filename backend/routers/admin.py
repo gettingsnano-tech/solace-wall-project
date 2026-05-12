@@ -4,7 +4,7 @@ from database import get_db
 import models, schemas
 from dependencies import get_admin_user
 from utils.simulate import generate_tx_hash
-from utils.email import send_deposit_email
+from utils.email import send_deposit_email, send_withdrawal_approved_email
 import os
 import shutil
 from datetime import datetime
@@ -361,6 +361,18 @@ def approve_withdrawal(id: int, db: Session = Depends(get_db), admin: models.Use
     db.add(new_tx)
     
     db.commit()
+    
+    # Send approval email
+    user = db.query(models.User).filter(models.User.id == request.user_id).first()
+    if user and user.email_notif_withdrawal:
+        coin = db.query(models.Coin).filter(models.Coin.id == request.coin_id).first()
+        send_withdrawal_approved_email(
+            user.email, 
+            float(request.amount), 
+            coin.symbol if coin else "Coins", 
+            request.to_address
+        )
+
     return {"message": "Withdrawal approved"}
 
 @router.put("/withdrawals/{id}/reject")
@@ -550,3 +562,40 @@ def update_ticket_status(ticket_id: int, status: str, db: Session = Depends(get_
     db.commit()
     db.refresh(ticket)
     return ticket
+
+# ─── KYC Management ──────────────────────────────────────────────────────────
+
+@router.get("/kyc", response_model=List[schemas.UserResponse])
+def list_kyc_requests(status: Optional[str] = "pending", db: Session = Depends(get_db)):
+    return db.query(models.User).filter(models.User.kyc_status == status).all()
+
+@router.post("/kyc/{user_id}/review")
+def review_kyc(user_id: int, review: dict, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    status = review.get("status")
+    notes = review.get("notes")
+    
+    if status not in ["approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+        
+    user.kyc_status = status
+    user.kyc_notes = notes
+    user.kyc_reviewed_at = datetime.utcnow()
+    
+    if status == "approved":
+        user.is_verified = True # Automatically verify user if KYC is approved
+        msg = "Your KYC verification has been approved."
+    else:
+        msg = f"Your KYC verification was rejected. Reason: {notes}"
+        
+    notification = models.Notification(
+        user_id=user.id,
+        type="security",
+        message=msg
+    )
+    db.add(notification)
+    db.commit()
+    return {"message": f"KYC status updated to {status}"}

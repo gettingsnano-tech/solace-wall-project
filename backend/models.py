@@ -38,6 +38,16 @@ class User(Base):
     email_notif_deposit = Column(Boolean, default=True)
     email_notif_withdrawal = Column(Boolean, default=True)
 
+    # KYC Fields
+    kyc_status = Column(String, default="not_submitted") # not_submitted, pending, approved, rejected
+    kyc_document_type = Column(String, nullable=True) # Passport, ID Card, Driver's License
+    kyc_document_front = Column(String, nullable=True)
+    kyc_document_back = Column(String, nullable=True)
+    kyc_selfie = Column(String, nullable=True)
+    kyc_submitted_at = Column(DateTime, nullable=True)
+    kyc_reviewed_at = Column(DateTime, nullable=True)
+    kyc_notes = Column(String, nullable=True)
+
     wallets = relationship("UserWallet", back_populates="user")
     balances = relationship("Balance", back_populates="user")
     transactions = relationship("Transaction", back_populates="user")
@@ -219,3 +229,11 @@ class SwapHistory(Base):
     user = relationship("User")
     from_coin = relationship("Coin", foreign_keys=[from_coin_id])
     to_coin = relationship("Coin", foreign_keys=[to_coin_id])
+
+class LoginOTP(BaseBase := Base):
+    __tablename__ = "login_otps"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    code = Column(String)
+    expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

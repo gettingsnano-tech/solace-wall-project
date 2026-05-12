@@ -241,14 +241,17 @@ export default function DashboardLayout({
               )}
             </div>
 
-            <div className="flex items-center space-x-3 p-1 sm:p-1.5 pr-1 sm:pr-4 rounded-full bg-white/[0.05] border border-white/10">
-               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--primary)] text-[var(--background)] flex items-center justify-center font-bold text-xs sm:text-sm">
+            <Link 
+              href="/dashboard/profile"
+              className="flex items-center space-x-3 p-1 sm:p-1.5 pr-1 sm:pr-4 rounded-full bg-white/[0.05] border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
+            >
+               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--primary)] text-[var(--background)] flex items-center justify-center font-bold text-xs sm:text-sm group-hover:scale-110 transition-transform">
                   {user?.full_name?.charAt(0) || "U"}
                </div>
                <div className="hidden sm:block text-sm font-semibold truncate max-w-[150px]">
                   {user?.full_name || "User"}
                </div>
-            </div>
+            </Link>
           </div>
         </header>
 

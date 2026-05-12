@@ -31,6 +31,12 @@ class UserResponse(UserBase):
     is_active: bool
     is_verified: bool
     created_at: datetime
+    kyc_status: str
+    kyc_document_type: Optional[str] = None
+    kyc_document_front: Optional[str] = None
+    kyc_document_back: Optional[str] = None
+    kyc_selfie: Optional[str] = None
+    kyc_notes: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
@@ -39,8 +45,9 @@ class Token(BaseModel):
 
 class LoginResponse(BaseModel):
     message: str
-    role: str
-    is_verified: bool
+    role: Optional[str] = None
+    is_verified: Optional[bool] = None
+    otp_required: bool = False
 
 class CoinBase(BaseModel):
     name: str
@@ -292,3 +299,11 @@ class TicketResponse(TicketBase):
     updated_at: datetime
     messages: List[TicketMessageResponse] = []
     model_config = ConfigDict(from_attributes=True)
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+class KYCSubmitRequest(BaseModel):
+    document_type: str # Passport, ID Card, Driver's License
+    # Images will be handled via multipart/form-data usually
