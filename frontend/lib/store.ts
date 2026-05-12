@@ -8,6 +8,8 @@ interface User {
   role: string;
   is_verified: boolean;
   kyc_status?: string;
+  kyc_notes?: string;
+  created_at: string;
 }
 
 interface AuthState {
