@@ -135,6 +135,33 @@ export default function AdminUserDetailPage() {
     }
   };
 
+  const handleUserAction = async (action: string) => {
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    
+    setActionLoading(true);
+    try {
+      if (action === 'delete') {
+        await api.delete(`/api/admin/users/${id}`);
+        toast.success("User deleted successfully.");
+        router.push("/admin/users");
+      } else {
+        await api.post(`/api/admin/users/${id}/${action}`);
+        const messages: Record<string, string> = {
+          enable: "User account enabled.",
+          disable: "User account disabled.",
+          verify: "User email has been verified.",
+          "reset-password": "User password has been reset.",
+        };
+        toast.success(messages[action] || `Action '${action}' completed.`);
+        fetchData();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || `Failed to ${action} user.`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleKYCAction = async (status: string, notes: string = "") => {
     if (!confirm(`Are you sure you want to ${status} this KYC request?`)) return;
     
