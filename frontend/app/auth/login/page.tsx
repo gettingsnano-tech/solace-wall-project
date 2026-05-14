@@ -14,7 +14,9 @@ export default function LoginPage() {
   const { setUser, fetchMe } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [otpRequired, setOtpRequired] = useState(false);
+  const [pinRequired, setPinRequired] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [pinCode, setPinCode] = useState("");
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -56,9 +58,32 @@ export default function LoginPage() {
         email: formData.email,
         code: otpCode
       });
-      await finalizeLogin(data);
+      
+      if (data.pin_required) {
+        setOtpRequired(false);
+        setPinRequired(true);
+        toast.success("Identity confirmed. Please enter your PIN.");
+      } else {
+        await finalizeLogin(data);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || "Invalid or expired verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await api.post("/api/auth/verify-pin", {
+        email: formData.email,
+        pin: pinCode
+      });
+      await finalizeLogin(data);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Invalid PIN code.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +129,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {!otpRequired ? (
+        {!otpRequired && !pinRequired ? (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email Address</label>
@@ -154,7 +179,7 @@ export default function LoginPage() {
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
             </button>
           </form>
-        ) : (
+        ) : otpRequired ? (
           <form onSubmit={handleVerifyOtp} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 text-center block">Verification Code</label>
@@ -184,6 +209,41 @@ export default function LoginPage() {
               className="w-full text-xs font-bold text-gray-500 hover:text-white transition-colors"
             >
               Back to Login
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyPin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 text-center block">Security PIN</label>
+              <input 
+                type="password" 
+                required
+                maxLength={6}
+                className="w-full bg-white/[0.05] border border-white/10 rounded-2xl py-5 px-6 text-center text-3xl font-black tracking-[0.5em] focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
+                placeholder="••••••"
+                value={pinCode}
+                onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ""))}
+              />
+              <p className="text-[10px] text-gray-500 text-center pt-2">Enter your 6-digit security PIN to continue.</p>
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading || pinCode.length !== 6}
+              className="w-full btn-primary py-4 rounded-2xl text-lg flex items-center justify-center space-x-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Confirm PIN</span>}
+            </button>
+
+            <button 
+              type="button"
+              onClick={() => {
+                setPinRequired(false);
+                setFormData({ email: "", password: "" });
+              }}
+              className="w-full text-xs font-bold text-gray-500 hover:text-white transition-colors"
+            >
+              Cancel Login
             </button>
           </form>
         )}

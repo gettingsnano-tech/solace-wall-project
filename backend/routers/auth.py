@@ -4,7 +4,7 @@ from database import get_db
 import models, schemas
 import utils.auth
 from utils.auth import create_access_token, get_password_hash, verify_password, decode_access_token
-from utils.email import send_verification_email, send_login_email, send_password_reset_email
+from utils.email import send_verification_email, send_login_email, send_password_reset_email, send_email_async
 from datetime import timedelta
 import secrets
 import re
@@ -46,6 +46,7 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     # Send verification email
+    print(f"DEBUG: Verification Token for {new_user.email}: {verification_token}")
     send_verification_email(new_user.email, verification_token)
     
     return new_user
@@ -83,7 +84,7 @@ def login(request: Request, response: Response, user_data: schemas.UserLogin, db
     db.commit()
     
     # Send OTP email
-    from utils.email import send_email_async
+    print(f"DEBUG: Login OTP for {user.email}: {otp_code}")
     subject = "Your Login Verification Code"
     body = f"""
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -101,7 +102,7 @@ def login(request: Request, response: Response, user_data: schemas.UserLogin, db
     """
     send_email_async(user.email, subject, body)
     
-    return {"message": "Verification code sent to your email", "otp_required": true, "role": None, "is_verified": None}
+    return {"message": "Verification code sent to your email", "otp_required": True, "role": None, "is_verified": None}
 
 @router.post("/verify-otp", response_model=schemas.LoginResponse)
 def verify_otp(request: Request, response: Response, data: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
@@ -147,7 +148,27 @@ def verify_otp(request: Request, response: Response, data: schemas.VerifyOTPRequ
         secure=settings.COOKIE_SECURE
     )
     
-    return {"message": "Logged in successfully", "role": user.role, "is_verified": user.is_verified, "otp_required": false}
+    return {
+        "message": "Logged in successfully", 
+        "role": user.role, 
+        "is_verified": user.is_verified, 
+        "otp_required": False,
+        "pin_required": bool(user.withdrawal_pin_hash)
+    }
+
+@router.post("/verify-pin", response_model=schemas.LoginResponse)
+def verify_pin(request: Request, response: Response, data: schemas.VerifyPINRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == data.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.withdrawal_pin_hash:
+        return {"message": "No PIN set", "role": user.role, "is_verified": user.is_verified, "otp_required": False, "pin_required": False}
+
+    if not verify_password(data.pin, user.withdrawal_pin_hash):
+        raise HTTPException(status_code=400, detail="Invalid PIN")
+    
+    return {"message": "PIN verified successfully", "role": user.role, "is_verified": user.is_verified, "otp_required": False, "pin_required": False}
 
 @router.post("/resend-verification")
 def resend_verification(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

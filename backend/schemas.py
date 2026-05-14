@@ -48,6 +48,7 @@ class LoginResponse(BaseModel):
     role: Optional[str] = None
     is_verified: Optional[bool] = None
     otp_required: bool = False
+    pin_required: bool = False
 
 class CoinBase(BaseModel):
     name: str
@@ -303,6 +304,10 @@ class TicketResponse(TicketBase):
 class VerifyOTPRequest(BaseModel):
     email: EmailStr
     code: str
+
+class VerifyPINRequest(BaseModel):
+    email: EmailStr
+    pin: str
 
 class KYCSubmitRequest(BaseModel):
     document_type: str # Passport, ID Card, Driver's License

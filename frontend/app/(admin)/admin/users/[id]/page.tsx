@@ -14,7 +14,10 @@ import {
   ChevronDown,
   Pencil,
   Check,
-  X
+  X,
+  FileText,
+  AlertTriangle,
+  Eye
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -132,28 +135,16 @@ export default function AdminUserDetailPage() {
     }
   };
 
-  const handleUserAction = async (action: string) => {
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+  const handleKYCAction = async (status: string, notes: string = "") => {
+    if (!confirm(`Are you sure you want to ${status} this KYC request?`)) return;
     
     setActionLoading(true);
     try {
-      if (action === 'delete') {
-        await api.delete(`/api/admin/users/${id}`);
-        toast.success("User deleted successfully.");
-        router.push("/admin/users");
-      } else {
-        await api.post(`/api/admin/users/${id}/${action}`);
-        const messages: Record<string, string> = {
-          enable: "User account enabled.",
-          disable: "User account disabled.",
-          verify: "User email has been verified.",
-          "reset-password": "User password has been reset.",
-        };
-        toast.success(messages[action] || `Action '${action}' completed.`);
-        fetchData();
-      }
+      await api.post(`/api/admin/kyc/${id}/review`, { status, notes });
+      toast.success(`KYC ${status} successfully.`);
+      fetchData();
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || `Failed to ${action} user.`);
+      toast.error(error.response?.data?.detail || `Failed to update KYC status.`);
     } finally {
       setActionLoading(false);
     }
@@ -347,6 +338,89 @@ export default function AdminUserDetailPage() {
                  </div>
                )}
             </div>
+
+            {/* KYC Details Section */}
+            {user.kyc_status !== 'not_submitted' && (
+              <div className="glass-card p-10 rounded-[2.5rem]">
+                <div className="flex justify-between items-center mb-10">
+                  <h3 className="text-xl font-bold flex items-center space-x-3">
+                    <FileText className="w-5 h-5 text-[var(--primary)]" />
+                    <span>KYC Verification</span>
+                  </h3>
+                  <div className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                    user.kyc_status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                    user.kyc_status === 'pending' ? 'bg-orange-500/10 text-orange-500' :
+                    'bg-red-500/10 text-red-500'
+                  }`}>
+                    {user.kyc_status}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Document Type</p>
+                    <p className="font-bold text-lg">{user.kyc_document_type}</p>
+                  </div>
+                  {user.kyc_notes && (
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Admin Notes</p>
+                      <p className="text-sm text-gray-400 bg-white/5 p-4 rounded-xl border border-white/5">{user.kyc_notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+                  {[
+                    { label: "Front Document", url: user.kyc_document_front },
+                    { label: "Back Document", url: user.kyc_document_back },
+                    { label: "Selfie", url: user.kyc_selfie },
+                  ].map((doc, idx) => doc.url && (
+                    <div key={idx} className="space-y-3">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{doc.label}</p>
+                      <div className="relative group aspect-[4/3] rounded-2xl overflow-hidden bg-white/5 border border-white/10">
+                        <img 
+                          src={doc.url} 
+                          alt={doc.label} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                        />
+                        <a 
+                          href={doc.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Eye className="w-6 h-6 text-white" />
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {user.kyc_status === 'pending' && (
+                  <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-white/5">
+                    <button
+                      onClick={() => {
+                        const reason = prompt("Enter rejection reason:");
+                        if (reason !== null) handleKYCAction('rejected', reason);
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 bg-red-500/10 text-red-500 py-4 rounded-2xl font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center space-x-2"
+                    >
+                      <X className="w-5 h-5" />
+                      <span>Reject KYC</span>
+                    </button>
+                    <button
+                      onClick={() => handleKYCAction('approved')}
+                      disabled={actionLoading}
+                      className="flex-1 bg-[var(--primary)] text-[var(--background)] py-4 rounded-2xl font-bold hover:scale-105 transition-all flex items-center justify-center space-x-2"
+                    >
+                      <Check className="w-5 h-5" />
+                      <span>Approve KYC</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
         </div>
 
         {/* Sidebar Status/Actions */}
