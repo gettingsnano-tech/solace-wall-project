@@ -230,7 +230,7 @@ class SwapHistory(Base):
     from_coin = relationship("Coin", foreign_keys=[from_coin_id])
     to_coin = relationship("Coin", foreign_keys=[to_coin_id])
 
-class LoginOTP(BaseBase := Base):
+class LoginOTP(Base):
     __tablename__ = "login_otps"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, index=True)
