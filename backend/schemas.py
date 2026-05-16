@@ -129,8 +129,23 @@ class TransactionResponse(BaseModel):
     status: str
     timestamp: datetime
     tx_hash: Optional[str]
+    confirmations: Optional[int] = None
+    notes: Optional[str] = None
     coin: CoinResponse
     model_config = ConfigDict(from_attributes=True)
+
+class AdminDepositCreate(BaseModel):
+    coin_id: int
+    network: str
+    amount: Decimal
+    tx_hash: str
+    from_address: str
+    to_address: str
+    confirmations: Optional[int] = None
+    timestamp: Optional[datetime] = None
+    status: Optional[str] = "approved"  # approved or pending
+    notes: Optional[str] = None
+    update_balance: bool = True  # Whether to credit user balance
 
 class WithdrawalRequestCreate(BaseModel):
     coin_id: int

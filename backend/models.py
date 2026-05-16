@@ -142,6 +142,7 @@ class Transaction(Base):
     real_created_at = Column(DateTime, default=datetime.datetime.utcnow)
     notes = Column(String, nullable=True)
     tx_hash = Column(String, nullable=True)
+    confirmations = Column(Integer, nullable=True, default=None)
 
     user = relationship("User", back_populates="transactions")
     coin = relationship("Coin", back_populates="transactions")
