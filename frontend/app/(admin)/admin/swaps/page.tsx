@@ -9,7 +9,10 @@ import {
   ArrowRight,
   User,
   Calendar,
-  DollarSign
+  DollarSign,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -40,6 +43,9 @@ export default function AdminSwapsPage() {
   const [swaps, setSwaps] = useState<SwapRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDateValue, setEditDateValue] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   const fetchSwaps = async () => {
     try {
@@ -62,6 +68,22 @@ export default function AdminSwapsPage() {
     s.from_coin?.symbol?.toLowerCase().includes(search.toLowerCase()) ||
     s.to_coin?.symbol?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDateUpdate = async (id: number) => {
+    if (!editDateValue) return;
+    setEditLoading(true);
+    try {
+      const formattedDate = new Date(editDateValue).toISOString();
+      // Import toast dynamically or use standard error handling
+      await api.patch(`/api/admin/swaps/${id}/date`, { new_date: formattedDate });
+      setEditingId(null);
+      fetchSwaps();
+    } catch (error) {
+      console.error("Failed to update date");
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -121,10 +143,38 @@ export default function AdminSwapsPage() {
                            <User className="w-3.5 h-3.5 text-gray-500" />
                            <span className="font-bold text-sm">{swap.user?.full_name ?? "Unknown User"}</span>
                         </div>
-                        <div className="flex items-center space-x-3 text-xs text-gray-500">
-                           <Calendar className="w-3.5 h-3.5" />
-                           <span>{new Date(swap.created_at).toLocaleString()}</span>
-                        </div>
+                        {editingId === swap.id ? (
+                           <div className="flex items-center space-x-2 mt-1">
+                             <input 
+                               type="datetime-local" 
+                               className="bg-[#0A0E1A] border border-[var(--primary)]/40 rounded-lg px-2 py-1 text-xs text-white"
+                               value={editDateValue}
+                               onChange={(e) => setEditDateValue(e.target.value)}
+                             />
+                             <button onClick={() => handleDateUpdate(swap.id)} className="text-green-500 hover:text-green-400">
+                               {editLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                             </button>
+                             <button onClick={() => setEditingId(null)} className="text-red-500 hover:text-red-400">
+                               <X className="w-3 h-3" />
+                             </button>
+                           </div>
+                        ) : (
+                           <div className="flex items-center space-x-3 text-xs text-gray-500 group relative">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>{new Date(swap.created_at).toLocaleString()}</span>
+                              <button 
+                                onClick={() => {
+                                  setEditingId(swap.id);
+                                  const d = new Date(swap.created_at);
+                                  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                  setEditDateValue(d.toISOString().slice(0,16));
+                                }}
+                                className="opacity-0 group-hover:opacity-100 text-[var(--primary)] transition-opacity absolute right-0"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                           </div>
+                        )}
                         <div className="text-[10px] text-gray-600 mt-1 font-mono">{swap.user?.email ?? "—"}</div>
                      </td>
                       <td className="px-8 py-6">
