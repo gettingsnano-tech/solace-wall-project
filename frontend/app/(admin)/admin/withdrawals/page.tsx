@@ -11,7 +11,10 @@ import {
   ArrowRight,
   Clock,
   User,
-  ShieldCheck
+  ShieldCheck,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -21,6 +24,10 @@ export default function AdminWithdrawalsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
   const [processing, setProcessing] = useState<number | string | null>(null);
+
+  const [editingDateId, setEditingDateId] = useState<number | null>(null);
+  const [editDateValue, setEditDateValue] = useState("");
+  const [editDateLoading, setEditDateLoading] = useState(false);
 
   const fetchRequests = async () => {
     try {
@@ -54,6 +61,22 @@ export default function AdminWithdrawalsPage() {
     if (filter === "all") return true;
     return r.status === filter;
   });
+
+  const handleDateUpdate = async (id: number) => {
+    if (!editDateValue) return;
+    setEditDateLoading(true);
+    try {
+      const formattedDate = new Date(editDateValue).toISOString();
+      await api.patch(`/api/admin/withdrawals/${id}/date`, { new_date: formattedDate });
+      toast.success("Withdrawal date updated.");
+      setEditingDateId(null);
+      fetchRequests();
+    } catch (error) {
+      toast.error("Failed to update date.");
+    } finally {
+      setEditDateLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -114,7 +137,37 @@ export default function AdminWithdrawalsPage() {
                              <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center font-bold text-xs uppercase">U{req.id}</div>
                              <div className="flex flex-col">
                                 <span className="text-xs font-bold text-gray-300">User ID: #{req.user_id}</span>
-                                <span className="text-[10px] text-gray-600 font-medium">{new Date(req.created_at).toLocaleString()}</span>
+                                {editingDateId === req.id ? (
+                                   <div className="flex items-center space-x-2 mt-1">
+                                     <input 
+                                       type="datetime-local" 
+                                       className="bg-[#0A0E1A] border border-[var(--primary)]/40 rounded-lg px-1 py-1 text-[10px] text-white"
+                                       value={editDateValue}
+                                       onChange={(e) => setEditDateValue(e.target.value)}
+                                     />
+                                     <button onClick={() => handleDateUpdate(req.id)} className="text-green-500 hover:text-green-400">
+                                       {editDateLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                     </button>
+                                     <button onClick={() => setEditingDateId(null)} className="text-red-500 hover:text-red-400">
+                                       <X className="w-3 h-3" />
+                                     </button>
+                                   </div>
+                                ) : (
+                                   <div className="flex items-center space-x-2 group/date">
+                                      <span className="text-[10px] text-gray-600 font-medium">{new Date(req.created_at).toLocaleString()}</span>
+                                      <button 
+                                        onClick={() => {
+                                          setEditingDateId(req.id);
+                                          const d = new Date(req.created_at);
+                                          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                          setEditDateValue(d.toISOString().slice(0,16));
+                                        }}
+                                        className="opacity-0 group-hover/date:opacity-100 text-[var(--primary)] transition-opacity"
+                                      >
+                                        <Pencil className="w-3 h-3" />
+                                      </button>
+                                   </div>
+                                )}
                              </div>
                           </div>
                        </td>

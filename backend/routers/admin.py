@@ -11,6 +11,10 @@ from datetime import datetime
 from typing import List, Optional
 from config import settings
 from sqlalchemy import func, Integer
+from pydantic import BaseModel
+
+class DateUpdate(BaseModel):
+    new_date: datetime
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(get_admin_user)])
 
@@ -599,3 +603,42 @@ def review_kyc(user_id: int, review: dict, db: Session = Depends(get_db)):
     db.add(notification)
     db.commit()
     return {"message": f"KYC status updated to {status}"}
+
+# ─── Date Edit Routes ────────────────────────────────────────────────────────
+
+@router.patch("/users/{user_id}/date")
+def update_user_date(user_id: int, payload: DateUpdate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.created_at = payload.new_date.replace(tzinfo=None)
+    db.commit()
+    return {"message": "User date updated"}
+
+@router.patch("/transactions/{tx_id}/date")
+def update_transaction_date(tx_id: int, payload: DateUpdate, db: Session = Depends(get_db)):
+    tx = db.query(models.Transaction).filter(models.Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    tx.timestamp = payload.new_date.replace(tzinfo=None)
+    db.commit()
+    return {"message": "Transaction date updated"}
+
+@router.patch("/swaps/{swap_id}/date")
+def update_swap_date(swap_id: int, payload: DateUpdate, db: Session = Depends(get_db)):
+    swap = db.query(models.SwapHistory).filter(models.SwapHistory.id == swap_id).first()
+    if not swap:
+        raise HTTPException(status_code=404, detail="Swap not found")
+    swap.created_at = payload.new_date.replace(tzinfo=None)
+    db.commit()
+    return {"message": "Swap date updated"}
+
+@router.patch("/withdrawals/{id}/date")
+def update_withdrawal_date(id: int, payload: DateUpdate, db: Session = Depends(get_db)):
+    req = db.query(models.WithdrawalRequest).filter(models.WithdrawalRequest.id == id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Withdrawal not found")
+    req.created_at = payload.new_date.replace(tzinfo=None)
+    db.commit()
+    return {"message": "Withdrawal date updated"}
+

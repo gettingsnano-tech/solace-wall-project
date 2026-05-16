@@ -33,6 +33,14 @@ export default function ProfilePage() {
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [submittingKyc, setSubmittingKyc] = useState(false);
 
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    const [name, domain] = email.split("@");
+    if (!name || !domain) return email;
+    const maskedName = name.length > 2 ? `${name.substring(0, 2)}***` : `${name.charAt(0)}***`;
+    return `${maskedName}@${domain}`;
+  };
+
   useEffect(() => {
     if (user) {
       setFullName(user.full_name || "");
@@ -141,7 +149,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Email Address</p>
-                   <p className="font-bold truncate">{user.email}</p>
+                   <p className="font-bold truncate">{maskEmail(user.email)}</p>
                 </div>
              </div>
              <div className="flex items-center space-x-4 text-sm">

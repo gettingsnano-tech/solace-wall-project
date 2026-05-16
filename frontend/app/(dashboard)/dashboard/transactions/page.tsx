@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Repeat
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
@@ -21,6 +21,7 @@ export default function TransactionsPage() {
   const [swaps, setSwaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [expandedTx, setExpandedTx] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,82 +101,156 @@ export default function TransactionsPage() {
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
-                  {filteredTx.length > 0 ? filteredTx.map((tx: any, idx) => (
-                    <motion.tr 
-                       key={tx.isSwap ? `swap-${tx.id}` : `tx-${tx.id}`}
-                       initial={{ opacity: 0, y: 5 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       transition={{ delay: idx * 0.03 }}
-                       className="group hover:bg-white/[0.02]"
-                    >
-                       <td className="px-6 lg:px-8 py-4 lg:py-6">
-                          <div className="flex flex-col">
-                             <span className="font-mono text-[10px] lg:text-xs text-gray-400">#{tx.id}</span>
-                             {tx.tx_hash && (
-                                <span className="text-[9px] lg:text-[10px] text-gray-600 font-mono truncate max-w-[100px] lg:max-w-[150px]">{tx.tx_hash}</span>
-                             )}
-                          </div>
-                       </td>
-                       <td className="px-4 lg:px-6 py-4 lg:py-6">
-                          <div className={`inline-flex items-center space-x-1.5 lg:space-x-2 px-2 lg:px-3 py-1 rounded-lg text-[10px] lg:text-xs font-bold ${
-                            tx.type === 'deposit' ? 'text-green-500 bg-green-500/10' : 
-                            tx.type === 'withdrawal' ? 'text-red-500 bg-red-500/10' : 
-                            'text-[var(--primary)] bg-[var(--primary)]/10'
-                          }`}>
-                             {tx.type === 'deposit' ? <ArrowDownLeft className="w-3 h-3" /> : 
-                              tx.type === 'withdrawal' ? <ArrowUpRight className="w-3 h-3" /> : 
-                              <Repeat className="w-3 h-3" />}
-                             <span className="capitalize">{tx.type}</span>
-                          </div>
-                       </td>
-                       <td className="px-4 lg:px-6 py-4 lg:py-6">
-                          {tx.isSwap ? (
-                            <div className="flex items-center space-x-2">
-                               <span className="font-bold text-xs lg:text-sm">{tx.from_coin?.symbol || "???"}</span>
-                               <ArrowRight className="w-3 h-3 text-gray-600" />
-                               <span className="font-bold text-xs lg:text-sm text-[var(--primary)]">{tx.to_coin?.symbol || "???"}</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2 lg:space-x-3">
-                               <img src={tx.coin?.icon_url || "/placeholder-coin.png"} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full" alt={tx.coin?.symbol || "Coin"} />
-                               <span className="font-bold text-xs lg:text-sm">{tx.coin?.symbol || "???"}</span>
-                            </div>
-                          )}
-                       </td>
-                       <td className="px-4 lg:px-6 py-4 lg:py-6 font-mono font-bold text-xs lg:text-sm">
-                           {tx.isSwap ? (
-                            <div className="space-y-0.5">
-                               <div className="text-red-500 text-[10px] lg:text-xs">-{parseFloat(tx.from_amount).toFixed(8)} {tx.from_coin?.symbol || ""}</div>
-                               <div className="text-green-500 text-[10px] lg:text-xs">+{parseFloat(tx.to_amount).toFixed(8)} {tx.to_coin?.symbol || ""}</div>
-                            </div>
-                          ) : (
-                            <div className="space-y-1">
-                               <div className="font-mono">{parseFloat(tx.amount).toFixed(tx.coin?.symbol === 'USDT' ? 2 : 6)}</div>
-                               {tx.type === 'withdrawal' && tx.to_address && (
-                                  <div className="text-[9px] lg:text-[10px] text-gray-500 font-mono break-all max-w-[150px] lg:max-w-[200px] leading-tight">
-                                     To: {tx.to_address}
-                                  </div>
+                  {filteredTx.length > 0 ? filteredTx.map((tx: any, idx) => {
+                    const txKey = tx.isSwap ? `swap-${tx.id}` : `tx-${tx.id}`;
+                    return (
+                     <React.Fragment key={txKey}>
+                      <motion.tr 
+                         initial={{ opacity: 0, y: 5 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         transition={{ delay: idx * 0.03 }}
+                         className="group hover:bg-white/[0.02] cursor-pointer"
+                         onClick={() => setExpandedTx(expandedTx === txKey ? null : txKey)}
+                      >
+                         <td className="px-6 lg:px-8 py-4 lg:py-6">
+                            <div className="flex flex-col">
+                               <span className="font-mono text-[10px] lg:text-xs text-gray-400">#{tx.id}</span>
+                               {tx.tx_hash && (
+                                  <span className="text-[9px] lg:text-[10px] text-gray-600 font-mono truncate max-w-[100px] lg:max-w-[150px]">{tx.tx_hash}</span>
                                )}
                             </div>
-                          )}
-                       </td>
-                       <td className="px-4 lg:px-6 py-4 lg:py-6">
-                          <div className={`text-[9px] lg:text-[10px] font-black uppercase tracking-widest ${
-                            tx.status === 'approved' || tx.status === 'completed' ? 'text-[var(--secondary)]' : 
-                            tx.status === 'pending' ? 'text-orange-500' : 
-                            'text-red-500'
-                          }`}>
-                             {tx.status}
-                          </div>
-                       </td>
-                       <td className="px-6 lg:px-8 py-4 lg:py-6 text-right text-[10px] lg:text-xs text-gray-500 font-medium">
-                          <div className="flex flex-col lg:items-end">
-                            <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
-                            <span className="text-[9px] opacity-60">{new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                       </td>
-                    </motion.tr>
-                  )) : (
+                         </td>
+                         <td className="px-4 lg:px-6 py-4 lg:py-6">
+                            <div className={`inline-flex items-center space-x-1.5 lg:space-x-2 px-2 lg:px-3 py-1 rounded-lg text-[10px] lg:text-xs font-bold ${
+                              tx.type === 'deposit' ? 'text-green-500 bg-green-500/10' : 
+                              tx.type === 'withdrawal' ? 'text-red-500 bg-red-500/10' : 
+                              'text-[var(--primary)] bg-[var(--primary)]/10'
+                            }`}>
+                               {tx.type === 'deposit' ? <ArrowDownLeft className="w-3 h-3" /> : 
+                                tx.type === 'withdrawal' ? <ArrowUpRight className="w-3 h-3" /> : 
+                                <Repeat className="w-3 h-3" />}
+                               <span className="capitalize">{tx.type}</span>
+                            </div>
+                         </td>
+                         <td className="px-4 lg:px-6 py-4 lg:py-6">
+                            {tx.isSwap ? (
+                              <div className="flex items-center space-x-2">
+                                 <span className="font-bold text-xs lg:text-sm">{tx.from_coin?.symbol || "???"}</span>
+                                 <ArrowRight className="w-3 h-3 text-gray-600" />
+                                 <span className="font-bold text-xs lg:text-sm text-[var(--primary)]">{tx.to_coin?.symbol || "???"}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2 lg:space-x-3">
+                                 <img src={tx.coin?.icon_url || "/placeholder-coin.png"} className="w-5 h-5 lg:w-6 lg:h-6 rounded-full" alt={tx.coin?.symbol || "Coin"} />
+                                 <span className="font-bold text-xs lg:text-sm">{tx.coin?.symbol || "???"}</span>
+                              </div>
+                            )}
+                         </td>
+                         <td className="px-4 lg:px-6 py-4 lg:py-6 font-mono font-bold text-xs lg:text-sm">
+                             {tx.isSwap ? (
+                              <div className="space-y-0.5">
+                                 <div className="text-red-500 text-[10px] lg:text-xs">-{parseFloat(tx.from_amount).toFixed(8)} {tx.from_coin?.symbol || ""}</div>
+                                 <div className="text-green-500 text-[10px] lg:text-xs">+{parseFloat(tx.to_amount).toFixed(8)} {tx.to_coin?.symbol || ""}</div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                 <div className="font-mono">{parseFloat(tx.amount).toFixed(tx.coin?.symbol === 'USDT' ? 2 : 6)}</div>
+                                 {tx.type === 'withdrawal' && tx.to_address && (
+                                    <div className="text-[9px] lg:text-[10px] text-gray-500 font-mono break-all max-w-[150px] lg:max-w-[200px] leading-tight">
+                                       To: {tx.to_address}
+                                    </div>
+                                 )}
+                              </div>
+                            )}
+                         </td>
+                         <td className="px-4 lg:px-6 py-4 lg:py-6">
+                            <div className={`text-[9px] lg:text-[10px] font-black uppercase tracking-widest ${
+                              tx.status === 'approved' || tx.status === 'completed' ? 'text-[var(--secondary)]' : 
+                              tx.status === 'pending' ? 'text-orange-500' : 
+                              'text-red-500'
+                            }`}>
+                               {tx.status}
+                            </div>
+                         </td>
+                         <td className="px-6 lg:px-8 py-4 lg:py-6 text-right text-[10px] lg:text-xs text-gray-500 font-medium">
+                            <div className="flex flex-col lg:items-end">
+                              <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                              <span className="text-[9px] opacity-60">{new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                         </td>
+                      </motion.tr>
+                      <AnimatePresence>
+                        {expandedTx === txKey && (
+                          <motion.tr
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="bg-white/[0.01]"
+                          >
+                            <td colSpan={6} className="px-6 lg:px-8 py-4 lg:py-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <div className="space-y-2">
+                                  <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Transaction Details</p>
+                                  <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                    <span className="text-gray-400">Transaction ID</span>
+                                    <span className="font-mono">{tx.id}</span>
+                                  </div>
+                                  {tx.tx_hash && (
+                                    <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                      <span className="text-gray-400">Tx Hash / Explorer</span>
+                                      <span className="font-mono text-[var(--primary)] truncate ml-4 break-all">{tx.tx_hash}</span>
+                                    </div>
+                                  )}
+                                  {tx.isSwap ? (
+                                    <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                      <span className="text-gray-400">Conversion Rate</span>
+                                      <span className="font-mono">1 {tx.from_coin?.symbol} &approx; {tx.from_amount && tx.to_amount ? (tx.to_amount / tx.from_amount).toFixed(4) : "0"} {tx.to_coin?.symbol}</span>
+                                    </div>
+                                  ) : (
+                                    tx.network && (
+                                      <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                        <span className="text-gray-400">Network</span>
+                                        <span className="font-mono uppercase text-[var(--secondary)]">{tx.network}</span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                                <div className="space-y-2">
+                                  <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Financial Breakdown</p>
+                                  {tx.isSwap ? (
+                                    <>
+                                      <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                        <span className="text-gray-400">Fee (USD)</span>
+                                        <span className="font-mono text-red-500">-${Number(tx.fee_usd || 0).toFixed(2)}</span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                        <span className="text-gray-400">Amount</span>
+                                        <span className="font-mono">{parseFloat(tx.amount).toFixed(8)} {tx.coin?.symbol}</span>
+                                      </div>
+                                      {tx.type === 'withdrawal' && tx.to_address && (
+                                        <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                          <span className="text-gray-400">Destination</span>
+                                          <span className="font-mono text-gray-300 break-all ml-4 text-right">{tx.to_address}</span>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                  <div className="flex justify-between bg-[#0A0E1A] p-3 rounded-xl border border-white/5">
+                                    <span className="text-gray-400">Timestamp</span>
+                                    <span className="font-mono">{new Date(tx.timestamp).toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        )}
+                      </AnimatePresence>
+                     </React.Fragment>
+                    );
+                  }) : (
                     <tr>
                        <td colSpan={6} className="px-8 py-20 text-center text-gray-500 text-sm font-medium italic">
                           No transactions found in this category.

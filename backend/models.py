@@ -28,6 +28,7 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    real_created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     two_factor_enabled = Column(Boolean, default=False)
     two_factor_secret = Column(String, nullable=True)
@@ -138,6 +139,7 @@ class Transaction(Base):
     from_address = Column(String, nullable=True)
     status = Column(String, default=Status.PENDING)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    real_created_at = Column(DateTime, default=datetime.datetime.utcnow)
     notes = Column(String, nullable=True)
     tx_hash = Column(String, nullable=True)
 
@@ -154,6 +156,7 @@ class WithdrawalRequest(Base):
     amount = Column(Numeric(precision=20, scale=8))
     status = Column(String, default=Status.PENDING)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    real_created_at = Column(DateTime, default=datetime.datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -225,6 +228,7 @@ class SwapHistory(Base):
     fee_usd = Column(Numeric(precision=20, scale=2), default=3.00)
     status = Column(String, default="completed") # completed, failed
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    real_created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     user = relationship("User")
     from_coin = relationship("Coin", foreign_keys=[from_coin_id])
