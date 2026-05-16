@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from typing import Optional
 import os
 from sqlalchemy.orm import Session
 from database import get_db
 import models, schemas
 from dependencies import get_current_user, get_verified_user
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 from utils.email import send_withdrawal_email
 import pyotp
@@ -595,7 +596,7 @@ def update_password(
 async def submit_kyc(
     document_type: str = Form(...),
     document_front: UploadFile = File(...),
-    document_back: UploadFile = File(None),
+    document_back: Optional[UploadFile] = File(None),
     selfie: UploadFile = File(...),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user)
@@ -603,25 +604,28 @@ async def submit_kyc(
     if user.kyc_status == "approved":
         raise HTTPException(status_code=400, detail="KYC is already approved")
     
-    upload_dir = "uploads/kyc"
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-        
-    # Save files
     import shutil
-    import os
-    
-    front_path = os.path.join(upload_dir, f"{user.id}_front_{document_front.filename}")
+
+    upload_dir = "uploads/kyc"
+    os.makedirs(upload_dir, exist_ok=True)
+        
+    # Save front document
+    front_filename = document_front.filename or f"front_{user.id}"
+    front_path = os.path.join(upload_dir, f"{user.id}_front_{front_filename}")
     with open(front_path, "wb") as buffer:
         shutil.copyfileobj(document_front.file, buffer)
         
+    # Save back document (optional)
     back_path = None
-    if document_back:
-        back_path = os.path.join(upload_dir, f"{user.id}_back_{document_back.filename}")
+    if document_back and document_back.filename:
+        back_filename = document_back.filename
+        back_path = os.path.join(upload_dir, f"{user.id}_back_{back_filename}")
         with open(back_path, "wb") as buffer:
             shutil.copyfileobj(document_back.file, buffer)
             
-    selfie_path = os.path.join(upload_dir, f"{user.id}_selfie_{selfie.filename}")
+    # Save selfie
+    selfie_filename = selfie.filename or f"selfie_{user.id}"
+    selfie_path = os.path.join(upload_dir, f"{user.id}_selfie_{selfie_filename}")
     with open(selfie_path, "wb") as buffer:
         shutil.copyfileobj(selfie.file, buffer)
         
@@ -631,6 +635,16 @@ async def submit_kyc(
     user.kyc_document_back = f"/{back_path}" if back_path else None
     user.kyc_selfie = f"/{selfie_path}"
     user.kyc_submitted_at = datetime.utcnow()
+
+    # Notify admin(s)
+    admins = db.query(models.User).filter(models.User.role == "admin").all()
+    for admin in admins:
+        notif = models.Notification(
+            user_id=admin.id,
+            type="kyc",
+            message=f"User {user.email} has submitted KYC documents for review."
+        )
+        db.add(notif)
     
     db.commit()
     return {"message": "KYC submitted successfully and is under review"}

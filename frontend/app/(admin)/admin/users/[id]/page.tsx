@@ -41,6 +41,23 @@ export default function AdminUserDetailPage() {
   const [topUpLoading, setTopUpLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Create Deposit (blockchain record) state
+  const [showCreateDeposit, setShowCreateDeposit] = useState(false);
+  const [depositData, setDepositData] = useState({
+    coin_id: "",
+    network: "",
+    amount: "",
+    tx_hash: "",
+    from_address: "",
+    to_address: "",
+    confirmations: "",
+    timestamp: "",
+    status: "approved",
+    notes: "",
+    update_balance: true,
+  });
+  const [depositLoading, setDepositLoading] = useState(false);
+
   // Inline balance edit state
   const [editingCoinId, setEditingCoinId] = useState<number | null>(null);
   const [editAmount, setEditAmount] = useState("");
@@ -113,11 +130,40 @@ export default function AdminUserDetailPage() {
       toast.success("Balance topped up successfully!");
       setShowTopUp(false);
       setTopUpData({ coin_id: "", amount: "", notes: "" });
-      fetchData(); // Refresh data
+      fetchData();
     } catch (error) {
       toast.error("Top-up failed.");
     } finally {
       setTopUpLoading(false);
+    }
+  };
+
+  const handleCreateDeposit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDepositLoading(true);
+    try {
+      const payload: any = {
+        coin_id: parseInt(depositData.coin_id),
+        network: depositData.network,
+        amount: parseFloat(depositData.amount),
+        tx_hash: depositData.tx_hash,
+        from_address: depositData.from_address,
+        to_address: depositData.to_address,
+        status: depositData.status,
+        update_balance: depositData.update_balance,
+        notes: depositData.notes || null,
+      };
+      if (depositData.confirmations) payload.confirmations = parseInt(depositData.confirmations);
+      if (depositData.timestamp) payload.timestamp = new Date(depositData.timestamp).toISOString();
+      await api.post(`/api/admin/users/${id}/deposit`, payload);
+      toast.success("Deposit transaction recorded successfully!");
+      setShowCreateDeposit(false);
+      setDepositData({ coin_id: "", network: "", amount: "", tx_hash: "", from_address: "", to_address: "", confirmations: "", timestamp: "", status: "approved", notes: "", update_balance: true });
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to create deposit.");
+    } finally {
+      setDepositLoading(false);
     }
   };
 
@@ -247,13 +293,22 @@ export default function AdminUserDetailPage() {
                     <CreditCard className="w-5 h-5 text-[var(--secondary)]" />
                     <span>User Balances</span>
                  </h3>
-                 <button 
-                  onClick={() => setShowTopUp(true)}
-                  className="bg-[var(--primary)] text-[var(--background)] p-2 rounded-xl flex items-center space-x-2 font-bold px-4 hover:scale-105 transition-transform"
-                 >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-xs">Top Up</span>
-                 </button>
+                 <div className="flex items-center space-x-3">
+                   <button 
+                    onClick={() => setShowCreateDeposit(true)}
+                    className="bg-[var(--secondary)]/10 text-[var(--secondary)] border border-[var(--secondary)]/30 p-2 rounded-xl flex items-center space-x-2 font-bold px-4 hover:bg-[var(--secondary)] hover:text-[var(--background)] transition-all"
+                   >
+                      <Plus className="w-4 h-4" />
+                      <span className="text-xs">Record Deposit</span>
+                   </button>
+                   <button 
+                    onClick={() => setShowTopUp(true)}
+                    className="bg-[var(--primary)] text-[var(--background)] p-2 rounded-xl flex items-center space-x-2 font-bold px-4 hover:scale-105 transition-transform"
+                   >
+                      <Plus className="w-4 h-4" />
+                      <span className="text-xs">Top Up</span>
+                   </button>
+                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -370,13 +425,14 @@ export default function AdminUserDetailPage() {
                {transactions.length > 0 ? (
                  <div className="divide-y divide-white/5">
                    {transactions.map((tx: any, idx) => (
-                     <div key={idx} className="py-4 flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${tx.type === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                     <div key={idx} className="py-5 flex justify-between items-start">
+                        <div className="flex items-start space-x-4">
+                          <div className={`w-8 h-8 mt-0.5 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${tx.type === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                              {tx.type === 'deposit' ? 'D' : 'W'}
                           </div>
-                          <div>
-                             <div className="font-bold text-sm">{tx.amount} {tx.coin.symbol}</div>
+                          <div className="min-w-0">
+                             <div className="font-bold text-sm">{parseFloat(tx.amount).toFixed(6)} {tx.coin.symbol}</div>
+                             <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{tx.network}</div>
                              {editingDateType === 'tx' && editingDateId === tx.id ? (
                                 <div className="flex items-center space-x-2 mt-1">
                                   <input 
@@ -393,7 +449,7 @@ export default function AdminUserDetailPage() {
                                   </button>
                                 </div>
                              ) : (
-                                <div className="text-[10px] text-gray-500 group flex items-center space-x-2">
+                                <div className="text-[10px] text-gray-500 group flex items-center space-x-2 mt-0.5">
                                   <span>{new Date(tx.timestamp).toLocaleString()}</span>
                                   <button 
                                     onClick={() => {
@@ -409,11 +465,26 @@ export default function AdminUserDetailPage() {
                                   </button>
                                 </div>
                              )}
+                             {tx.from_address && (
+                               <div className="text-[9px] font-mono text-gray-600 mt-1 truncate max-w-[180px]" title={tx.from_address}>
+                                 From: {tx.from_address}
+                               </div>
+                             )}
+                             {tx.tx_hash && (
+                               <div className="text-[9px] font-mono text-gray-600 truncate max-w-[180px]" title={tx.tx_hash}>
+                                 Hash: {tx.tx_hash}
+                               </div>
+                             )}
                           </div>
                         </div>
-                        <div className="text-right">
-                           <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'approved' ? 'text-green-500' : 'text-gray-400'}`}>{tx.status}</div>
-                           <div className="text-[10px] font-mono text-gray-600 truncate w-24">{tx.tx_hash}</div>
+                        <div className="text-right flex-shrink-0 ml-4">
+                           <div className={`text-[10px] font-black uppercase tracking-widest ${tx.status === 'approved' ? 'text-green-500' : tx.status === 'pending' ? 'text-yellow-500' : 'text-red-400'}`}>{tx.status}</div>
+                           {tx.confirmations != null && (
+                             <div className="text-[9px] text-gray-500 font-bold mt-0.5">{tx.confirmations} confirms</div>
+                           )}
+                           {tx.notes && (
+                             <div className="text-[9px] text-gray-600 italic mt-0.5 max-w-[100px] truncate" title={tx.notes}>{tx.notes}</div>
+                           )}
                         </div>
                      </div>
                    ))}
@@ -604,6 +675,185 @@ export default function AdminUserDetailPage() {
            </div>
         </div>
       </div>
+
+      {/* Create Deposit Modal */}
+      <AnimatePresence>
+        {showCreateDeposit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass-card w-full max-w-2xl p-10 rounded-[3rem] overflow-y-auto max-h-[90vh]"
+            >
+              <div className="mb-8">
+                <h3 className="text-2xl font-black mb-1">Record <span className="text-gradient">Blockchain Deposit</span></h3>
+                <p className="text-xs text-gray-500 font-medium">Copy transaction data from the blockchain explorer and enter it below to create an official deposit record for this user.</p>
+              </div>
+              <form onSubmit={handleCreateDeposit} className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Asset *</label>
+                    <select
+                      required
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 appearance-none focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={depositData.coin_id}
+                      onChange={(e) => setDepositData({...depositData, coin_id: e.target.value})}
+                    >
+                      <option value="">Select coin</option>
+                      {coins.map((c: any) => <option key={c.id} value={c.id}>{c.name} ({c.symbol})</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Network *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. ERC-20, TRC-20, BEP-20"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={depositData.network}
+                      onChange={(e) => setDepositData({...depositData, network: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Transaction Hash (TX ID) *</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="0xabc123... (copy from blockchain explorer)"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                    value={depositData.tx_hash}
+                    onChange={(e) => setDepositData({...depositData, tx_hash: e.target.value.trim()})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sender Address (From) *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="0x..."
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                      value={depositData.from_address}
+                      onChange={(e) => setDepositData({...depositData, from_address: e.target.value.trim()})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Receiver Address (To) *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="0x... (platform wallet)"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                      value={depositData.to_address}
+                      onChange={(e) => setDepositData({...depositData, to_address: e.target.value.trim()})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Amount *</label>
+                    <input
+                      required
+                      type="number"
+                      step="0.000001"
+                      min="0"
+                      placeholder="0.00000000"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={depositData.amount}
+                      onChange={(e) => setDepositData({...depositData, amount: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Confirmations</label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="e.g. 12"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={depositData.confirmations}
+                      onChange={(e) => setDepositData({...depositData, confirmations: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</label>
+                    <select
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 appearance-none focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={depositData.status}
+                      onChange={(e) => setDepositData({...depositData, status: e.target.value})}
+                    >
+                      <option value="approved">Approved</option>
+                      <option value="pending">Pending</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Transaction Timestamp (from blockchain)</label>
+                  <input
+                    type="datetime-local"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-medium"
+                    value={depositData.timestamp}
+                    onChange={(e) => setDepositData({...depositData, timestamp: e.target.value})}
+                  />
+                  <p className="text-[9px] text-gray-600 pl-1">Leave blank to use current time. Copy from blockchain explorer for accuracy.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Internal Notes (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Verified on Etherscan block #19271234"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-medium"
+                    value={depositData.notes}
+                    onChange={(e) => setDepositData({...depositData, notes: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-3 bg-white/[0.03] border border-white/5 rounded-2xl p-4">
+                  <input
+                    type="checkbox"
+                    id="update_balance"
+                    checked={depositData.update_balance}
+                    onChange={(e) => setDepositData({...depositData, update_balance: e.target.checked})}
+                    className="w-4 h-4 accent-[var(--secondary)]"
+                  />
+                  <label htmlFor="update_balance" className="text-sm font-bold cursor-pointer">
+                    Credit amount to user balance
+                    <span className="text-[10px] text-gray-500 font-normal ml-2">(uncheck to record only, without adding funds)</span>
+                  </label>
+                </div>
+
+                <div className="flex space-x-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateDeposit(false)}
+                    className="flex-1 bg-white/[0.05] py-4 rounded-2xl text-sm font-bold hover:bg-white/[0.1] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={depositLoading}
+                    className="flex-1 bg-[var(--secondary)] text-[var(--background)] py-4 rounded-2xl text-sm font-bold flex items-center justify-center hover:scale-105 transition-all"
+                  >
+                    {depositLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Record Deposit"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top Up Modal */}
       <AnimatePresence>

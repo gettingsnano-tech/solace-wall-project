@@ -430,6 +430,74 @@ def get_user_wallets_admin(user_id: int, db: Session = Depends(get_db)):
 def get_user_transactions_admin(user_id: int, db: Session = Depends(get_db)):
     return db.query(models.Transaction).filter(models.Transaction.user_id == user_id).order_by(models.Transaction.timestamp.desc()).all()
 
+@router.post("/users/{user_id}/deposit")
+def admin_create_deposit(user_id: int, payload: schemas.AdminDepositCreate, db: Session = Depends(get_db)):
+    """
+    Manually create a deposit transaction for a user using real blockchain data.
+    Admin copies tx hash, addresses, confirmations, timestamp etc. from the blockchain
+    and records it here. Optionally credits the user's balance.
+    """
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    coin = db.query(models.Coin).filter(models.Coin.id == payload.coin_id).first()
+    if not coin:
+        raise HTTPException(status_code=404, detail="Coin not found")
+
+    # Check for duplicate tx_hash to avoid double-posting
+    existing = db.query(models.Transaction).filter(models.Transaction.tx_hash == payload.tx_hash).first()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Transaction with hash {payload.tx_hash} already exists.")
+
+    tx_timestamp = payload.timestamp.replace(tzinfo=None) if payload.timestamp else datetime.utcnow()
+
+    new_tx = models.Transaction(
+        user_id=user_id,
+        coin_id=payload.coin_id,
+        type="deposit",
+        amount=payload.amount,
+        network=payload.network,
+        from_address=payload.from_address,
+        to_address=payload.to_address,
+        tx_hash=payload.tx_hash,
+        confirmations=payload.confirmations,
+        status=payload.status or "approved",
+        notes=payload.notes,
+        timestamp=tx_timestamp,
+        real_created_at=datetime.utcnow(),
+    )
+    db.add(new_tx)
+
+    # Credit the user's balance if requested and status is approved
+    if payload.update_balance and (payload.status == "approved" or payload.status is None):
+        balance = db.query(models.Balance).filter(
+            models.Balance.user_id == user_id,
+            models.Balance.coin_id == payload.coin_id
+        ).first()
+        if balance:
+            balance.amount += payload.amount
+        else:
+            balance = models.Balance(user_id=user_id, coin_id=payload.coin_id, amount=payload.amount)
+            db.add(balance)
+
+    # Create notification
+    notification = models.Notification(
+        user_id=user_id,
+        type="deposit",
+        message=f"A deposit of {payload.amount} {coin.symbol} has been recorded on your account."
+    )
+    db.add(notification)
+
+    db.commit()
+
+    # Send deposit email if enabled
+    if user.email_notif_deposit:
+        send_deposit_email(user.email, float(payload.amount), coin.symbol)
+
+    return {"message": "Deposit transaction created successfully", "tx_hash": payload.tx_hash}
+
+
 @router.post("/users/{user_id}/disable")
 def disable_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == user_id).first()

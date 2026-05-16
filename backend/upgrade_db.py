@@ -21,6 +21,13 @@ def upgrade_db():
             print(f"Added column {col_name} to users table")
         except sqlite3.OperationalError:
             print(f"Column {col_name} already exists")
+
+    # Add confirmations column to transactions table
+    try:
+        c.execute("ALTER TABLE transactions ADD COLUMN confirmations INTEGER")
+        print("Added column confirmations to transactions table")
+    except sqlite3.OperationalError:
+        print("Column confirmations already exists in transactions")
         
     # Create notifications table
     c.execute("""
