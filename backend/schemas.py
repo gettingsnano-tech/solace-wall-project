@@ -31,7 +31,7 @@ class UserResponse(UserBase):
     is_active: bool
     is_verified: bool
     created_at: datetime
-    kyc_status: str
+    kyc_status: Optional[str] = None
     kyc_document_type: Optional[str] = None
     kyc_document_front: Optional[str] = None
     kyc_document_back: Optional[str] = None
@@ -123,7 +123,7 @@ class TransactionResponse(BaseModel):
     id: int
     type: str
     amount: Decimal
-    network: str
+    network: Optional[str] = None
     to_address: Optional[str]
     from_address: Optional[str]
     status: str
