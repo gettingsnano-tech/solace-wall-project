@@ -73,6 +73,11 @@ export default function AdminUserDetailPage() {
   const [editDateValue, setEditDateValue] = useState("");
   const [editDateLoading, setEditDateLoading] = useState(false);
 
+  // Edit Transaction state
+  const [showEditTxModal, setShowEditTxModal] = useState(false);
+  const [editTxData, setEditTxData] = useState<any>(null);
+  const [editTxLoading, setEditTxLoading] = useState(false);
+
   const maskEmail = (email: string) => {
     if (!email) return "";
     const [name, domain] = email.split("@");
@@ -273,6 +278,43 @@ export default function AdminUserDetailPage() {
       toast.error("Failed to update date.");
     } finally {
       setEditDateLoading(false);
+    }
+  };
+
+  const handleDeleteTx = async (txId: number) => {
+    if (!confirm("Are you sure you want to delete this transaction? This action cannot be undone.")) return;
+    try {
+      await api.delete(`/api/admin/transactions/${txId}`);
+      toast.success("Transaction deleted successfully.");
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to delete transaction.");
+    }
+  };
+
+  const handleUpdateTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditTxLoading(true);
+    try {
+      const payload = {
+        amount: parseFloat(editTxData.amount),
+        network: editTxData.network,
+        tx_hash: editTxData.tx_hash,
+        from_address: editTxData.from_address,
+        to_address: editTxData.to_address,
+        status: editTxData.status,
+        confirmations: editTxData.confirmations ? parseInt(editTxData.confirmations) : null,
+        notes: editTxData.notes || null,
+      };
+      await api.patch(`/api/admin/transactions/${editTxData.id}`, payload);
+      toast.success("Transaction updated successfully.");
+      setShowEditTxModal(false);
+      setEditTxData(null);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to update transaction.");
+    } finally {
+      setEditTxLoading(false);
     }
   };
 
@@ -500,6 +542,23 @@ export default function AdminUserDetailPage() {
                                  Hash: {tx.tx_hash}
                                </div>
                              )}
+                             <div className="flex items-center space-x-3 mt-2">
+                               <button 
+                                 onClick={() => {
+                                   setEditTxData({ ...tx, amount: parseFloat(tx.amount).toString() });
+                                   setShowEditTxModal(true);
+                                 }}
+                                 className="text-[10px] text-[var(--primary)] font-bold hover:underline"
+                               >
+                                 Edit
+                               </button>
+                               <button 
+                                 onClick={() => handleDeleteTx(tx.id)}
+                                 className="text-[10px] text-red-500 font-bold hover:underline"
+                               >
+                                 Delete
+                               </button>
+                             </div>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
@@ -994,6 +1053,144 @@ export default function AdminUserDetailPage() {
               </motion.div>
            </motion.div>
          )}
+
+        {/* Edit Transaction Modal */}
+        {showEditTxModal && editTxData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="glass-card w-full max-w-2xl p-10 rounded-[3rem] overflow-y-auto max-h-[90vh]"
+            >
+              <div className="mb-8 flex justify-between items-start">
+                <div>
+                  <h3 className="text-2xl font-black mb-1">Edit <span className="text-gradient">Transaction</span></h3>
+                  <p className="text-xs text-gray-500 font-medium">Update the details of this transaction record.</p>
+                </div>
+                <button onClick={() => { setShowEditTxModal(false); setEditTxData(null); }} className="p-2 hover:bg-white/10 rounded-full text-gray-400">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateTx} className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Amount *</label>
+                    <input
+                      required
+                      type="number"
+                      step="0.000001"
+                      min="0"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={editTxData.amount}
+                      onChange={(e) => setEditTxData({...editTxData, amount: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Network *</label>
+                    <input
+                      required
+                      type="text"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={editTxData.network || ""}
+                      onChange={(e) => setEditTxData({...editTxData, network: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Transaction Hash</label>
+                  <input
+                    type="text"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                    value={editTxData.tx_hash || ""}
+                    onChange={(e) => setEditTxData({...editTxData, tx_hash: e.target.value.trim()})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sender Address (From)</label>
+                    <input
+                      type="text"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                      value={editTxData.from_address || ""}
+                      onChange={(e) => setEditTxData({...editTxData, from_address: e.target.value.trim()})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Receiver Address (To)</label>
+                    <input
+                      type="text"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-mono"
+                      value={editTxData.to_address || ""}
+                      onChange={(e) => setEditTxData({...editTxData, to_address: e.target.value.trim()})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Confirmations</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={editTxData.confirmations || ""}
+                      onChange={(e) => setEditTxData({...editTxData, confirmations: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Status</label>
+                    <select
+                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 appearance-none focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
+                      value={editTxData.status || "approved"}
+                      onChange={(e) => setEditTxData({...editTxData, status: e.target.value})}
+                    >
+                      <option value="approved">Approved</option>
+                      <option value="pending">Pending</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Admin Notes</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Optional notes"
+                    className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm resize-none"
+                    value={editTxData.notes || ""}
+                    onChange={(e) => setEditTxData({...editTxData, notes: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end space-x-4 pt-4">
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowEditTxModal(false); setEditTxData(null); }}
+                    className="text-sm font-bold text-gray-400 hover:text-white px-4 py-2"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={editTxLoading}
+                    className="bg-[var(--secondary)] text-[var(--background)] px-8 py-3.5 rounded-2xl font-bold flex items-center space-x-2 hover:scale-105 transition-transform disabled:opacity-50"
+                  >
+                    {editTxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    <span>Save Changes</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

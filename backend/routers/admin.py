@@ -672,6 +672,31 @@ def review_kyc(user_id: int, review: dict, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"KYC status updated to {status}"}
 
+# ─── Transaction Management ──────────────────────────────────────────────────
+
+@router.delete("/transactions/{tx_id}")
+def delete_transaction(tx_id: int, db: Session = Depends(get_db)):
+    tx = db.query(models.Transaction).filter(models.Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    db.delete(tx)
+    db.commit()
+    return {"message": "Transaction deleted"}
+
+@router.patch("/transactions/{tx_id}")
+def update_transaction(tx_id: int, payload: schemas.TransactionUpdate, db: Session = Depends(get_db)):
+    tx = db.query(models.Transaction).filter(models.Transaction.id == tx_id).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    update_data = payload.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(tx, key, value)
+        
+    db.commit()
+    return {"message": "Transaction updated"}
+
 # ─── Date Edit Routes ────────────────────────────────────────────────────────
 
 @router.patch("/users/{user_id}/date")
