@@ -57,6 +57,9 @@ export default function AdminUserDetailPage() {
     update_balance: true,
   });
   const [depositLoading, setDepositLoading] = useState(false);
+  
+  const [depositNetworks, setDepositNetworks] = useState<any[]>([]);
+  const [loadingDepositNetworks, setLoadingDepositNetworks] = useState(false);
 
   // Inline balance edit state
   const [editingCoinId, setEditingCoinId] = useState<number | null>(null);
@@ -116,6 +119,28 @@ export default function AdminUserDetailPage() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    if (depositData.coin_id) {
+      const fetchNetworks = async () => {
+        setLoadingDepositNetworks(true);
+        try {
+          const { data } = await api.get(`/api/user/coins/${depositData.coin_id}/networks`);
+          setDepositNetworks(data);
+          setDepositData(prev => ({ ...prev, network: data.length > 0 ? data[0].name : "" }));
+        } catch (error) {
+          console.error("Failed to fetch networks", error);
+          setDepositNetworks([]);
+        } finally {
+          setLoadingDepositNetworks(false);
+        }
+      };
+      fetchNetworks();
+    } else {
+      setDepositNetworks([]);
+      setDepositData(prev => ({ ...prev, network: "" }));
+    }
+  }, [depositData.coin_id]);
 
   const handleTopUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -711,14 +736,28 @@ export default function AdminUserDetailPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Network *</label>
-                    <input
-                      required
-                      type="text"
-                      placeholder="e.g. ERC-20, TRC-20, BEP-20"
-                      className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 focus:outline-none focus:border-[var(--secondary)] text-sm font-bold"
-                      value={depositData.network}
-                      onChange={(e) => setDepositData({...depositData, network: e.target.value})}
-                    />
+                    <div className="relative">
+                       <select
+                         required
+                         disabled={loadingDepositNetworks || !depositData.coin_id}
+                         className="w-full bg-[#0A0E1A] border border-white/10 rounded-2xl py-3.5 px-5 appearance-none focus:outline-none focus:border-[var(--secondary)] text-sm font-bold disabled:opacity-50"
+                         value={depositData.network}
+                         onChange={(e) => setDepositData({...depositData, network: e.target.value})}
+                       >
+                         {!depositData.coin_id ? (
+                           <option value="">Select a coin first</option>
+                         ) : loadingDepositNetworks ? (
+                           <option value="">Loading networks...</option>
+                         ) : depositNetworks.length === 0 ? (
+                           <option value="">No networks available</option>
+                         ) : (
+                           depositNetworks.map((net: any) => (
+                             <option key={net.id} value={net.name}>{net.label} ({net.name})</option>
+                           ))
+                         )}
+                       </select>
+                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 pointer-events-none" />
+                    </div>
                   </div>
                 </div>
 
