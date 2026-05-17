@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { X, Lock } from "lucide-react";
 
 export default function WithdrawPage() {
@@ -89,11 +90,12 @@ export default function WithdrawPage() {
       return;
     }
     
-    if (hasPin) {
-      setShowPinModal(true);
-    } else {
-      executeWithdrawal();
+    if (!hasPin) {
+      toast.error("Withdrawal PIN is required.");
+      return;
     }
+    
+    setShowPinModal(true);
   };
 
   const executeWithdrawal = async (e?: React.FormEvent) => {
@@ -155,6 +157,22 @@ export default function WithdrawPage() {
           animate={{ opacity: 1, x: 0 }}
           className="glass-card p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem]"
         >
+          {!hasPin ? (
+            <div className="flex flex-col items-center justify-center h-full py-10 text-center space-y-6">
+              <div className="w-20 h-20 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center shadow-xl shadow-[var(--primary)]/20 mb-2">
+                <Lock className="w-10 h-10" />
+              </div>
+              <h3 className="text-2xl font-black">Security PIN Required</h3>
+              <p className="text-gray-400 max-w-sm text-sm">To ensure the safety of your funds, you must set up a withdrawal PIN before making any transfers.</p>
+              <Link 
+                href="/dashboard/settings" 
+                className="btn-primary py-4 px-8 rounded-2xl font-bold flex items-center space-x-2 w-full max-w-xs justify-center mt-4"
+              >
+                <span>Set Withdrawal PIN</span>
+                <ArrowUpRight className="w-5 h-5" />
+              </Link>
+            </div>
+          ) : (
            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Select Coin</label>
@@ -246,6 +264,7 @@ export default function WithdrawPage() {
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Send Withdrawal</span>}
               </button>
            </form>
+          )}
         </motion.div>
 
         <div className="space-y-6 lg:space-y-8">
