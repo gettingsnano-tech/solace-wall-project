@@ -7,9 +7,9 @@ interface User {
   full_name: string;
   role: string;
   is_verified: boolean;
-  kyc_status?: string | null;
-  kyc_notes?: string | null;
-  created_at?: string;
+  kyc_status?: string;
+  kyc_notes?: string;
+  created_at: string;
 }
 
 interface AuthState {
