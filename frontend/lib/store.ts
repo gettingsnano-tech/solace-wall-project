@@ -7,6 +7,9 @@ interface User {
   full_name: string;
   role: string;
   is_verified: boolean;
+  kyc_status?: string | null;
+  kyc_notes?: string | null;
+  created_at?: string;
 }
 
 interface AuthState {
@@ -24,8 +27,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data } = await api.get("/api/auth/me");
       set({ user: data });
       return data;
-    } catch (error) {
+    } catch (error: any) {
       set({ user: null });
+      if (error.response?.status === 403 && error.response?.data?.detail === "Account disabled") {
+        return { disabled: true } as any;
+      }
       return null;
     }
   },

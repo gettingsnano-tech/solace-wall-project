@@ -340,18 +340,6 @@ def approve_withdrawal(id: int, db: Session = Depends(get_db), admin: models.Use
     request.reviewed_at = datetime.utcnow()
     request.reviewed_by = admin.id
     
-    balance = db.query(models.Balance).filter(
-        models.Balance.user_id == request.user_id,
-        models.Balance.coin_id == request.coin_id
-    ).first()
-    
-    if not balance or balance.amount < request.amount:
-        request.status = "rejected"
-        db.commit()
-        raise HTTPException(status_code=400, detail="Insufficient user balance")
-
-    balance.amount -= request.amount
-    
     new_tx = models.Transaction(
         user_id=request.user_id,
         coin_id=request.coin_id,
@@ -388,8 +376,21 @@ def reject_withdrawal(id: int, db: Session = Depends(get_db), admin: models.User
     request.status = "rejected"
     request.reviewed_at = datetime.utcnow()
     request.reviewed_by = admin.id
+    
+    # Refund the deducted/frozen amount back to the user's balance
+    balance = db.query(models.Balance).filter(
+        models.Balance.user_id == request.user_id,
+        models.Balance.coin_id == request.coin_id
+    ).first()
+    
+    if balance:
+        balance.amount += request.amount
+    else:
+        balance = models.Balance(user_id=request.user_id, coin_id=request.coin_id, amount=request.amount)
+        db.add(balance)
+        
     db.commit()
-    return {"message": "Withdrawal rejected"}
+    return {"message": "Withdrawal rejected and amount refunded successfully."}
 
 # ─── User Details (Extended) ──────────────────────────────────────────────────
 
@@ -540,11 +541,24 @@ def reset_user_password(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    from utils.auth import get_password_hash
-    # Reset to default password
-    user.hashed_password = get_password_hash("User@1234")
+    from utils.auth import create_access_token
+    from utils.email import send_password_reset_email
+    from datetime import timedelta
+    
+    # Generate password reset token
+    reset_token = create_access_token(
+        data={"sub": user.email, "type": "reset_password"},
+        expires_delta=timedelta(minutes=30)
+    )
+    
+    # Send password reset email
+    send_password_reset_email(user.email, reset_token)
+    
+    # Nullify password column so they MUST reset before they can log in
+    user.hashed_password = None
     db.commit()
-    return {"message": "Password reset to default (User@1234)"}
+    
+    return {"message": "Password reset email sent and password column nullified successfully."}
 
 # ─── Exchanges ──────────────────────────────────────────────────────────────
 

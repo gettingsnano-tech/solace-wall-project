@@ -151,7 +151,9 @@ export default function AdminLayout({
       setChecking(true);
       const currentUser = await fetchMe();
       
-      if (!currentUser) {
+      if (currentUser && (currentUser as any).disabled) {
+         router.push("/auth/blocked");
+      } else if (!currentUser) {
          router.push("/auth/login");
       } else if (!currentUser.is_verified) {
          router.push("/auth/verify-required");

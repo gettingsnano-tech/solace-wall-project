@@ -66,6 +66,30 @@ export default function AdminSupportPage() {
   }, []);
 
   useEffect(() => {
+    const interval = setInterval(async () => {
+      // Silently refresh the admin tickets list in the background
+      try {
+        const res = await api.get("/api/admin/tickets");
+        setTickets(res.data);
+      } catch (err) {
+        console.error("Error background polling admin tickets:", err);
+      }
+
+      // Silently refresh the active ticket's chat messages in the background
+      if (selectedTicket) {
+        try {
+          const res = await api.get(`/api/admin/tickets/${selectedTicket.id}`);
+          setSelectedTicket(res.data);
+        } catch (err) {
+          console.error("Error background polling active ticket messages:", err);
+        }
+      }
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
+  }, [selectedTicket?.id]);
+
+  useEffect(() => {
     if (selectedTicket) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }

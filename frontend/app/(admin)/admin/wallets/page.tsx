@@ -186,12 +186,14 @@ export default function AdminWalletsPage() {
     const search = searchTerm.toLowerCase();
     const netFilter = filterNetwork.toLowerCase();
     
-    // Search match (Name, Symbol, Network, or Address)
+    // Search match (Name, Symbol, Network, Address, Owner Name, or Owner Email)
     const matchesSearch = 
         w.address.toLowerCase().includes(search) ||
         w.network.toLowerCase().includes(search) ||
         (w.coin?.name || "").toLowerCase().includes(search) ||
-        (w.coin?.symbol || "").toLowerCase().includes(search);
+        (w.coin?.symbol || "").toLowerCase().includes(search) ||
+        (w.assigned_user_name || "").toLowerCase().includes(search) ||
+        (w.assigned_user_email || "").toLowerCase().includes(search);
         
     // Network filter match (loose)
     const matchesNetwork = !filterNetwork || w.network.toLowerCase().includes(netFilter);
@@ -363,13 +365,14 @@ export default function AdminWalletsPage() {
                      <th className="px-6 py-6">Network</th>
                      <th className="px-6 py-6 font-mono">Wallet Address</th>
                      <th className="px-6 py-6">Status</th>
+                     <th className="px-6 py-6">Assigned To</th>
                      <th className="px-8 py-6 text-right">Actions</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-white/[0.05]">
                   {filteredWallets.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-8 py-12 text-center text-gray-600 font-bold text-sm">
+                      <td colSpan={7} className="px-8 py-12 text-center text-gray-600 font-bold text-sm">
                         No addresses found.
                       </td>
                     </tr>
@@ -411,6 +414,16 @@ export default function AdminWalletsPage() {
                              <div className={`w-1.5 h-1.5 rounded-full ${wallet.is_used ? 'bg-red-500' : 'bg-[var(--secondary)]'}`}></div>
                              <span>{wallet.is_used ? 'Used' : 'Available'}</span>
                           </div>
+                       </td>
+                       <td className="px-6 py-6">
+                          {wallet.is_used && (wallet.assigned_user_name || wallet.assigned_user_email) ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-xs text-white">{wallet.assigned_user_name || "N/A"}</span>
+                              <span className="text-[10px] text-gray-400 font-mono mt-0.5">{wallet.assigned_user_email}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-600 italic">Unassigned</span>
+                          )}
                        </td>
                        <td className="px-8 py-6 text-right">
                           <button 
