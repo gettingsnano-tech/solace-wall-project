@@ -158,6 +158,9 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
     if not balance or balance.amount < request.amount:
         raise HTTPException(status_code=400, detail="Insufficient balance")
     
+    # Deduct balance immediately (freezing the funds)
+    balance.amount -= request.amount
+    
     # Create request
     new_request = models.WithdrawalRequest(
         user_id=user.id,
@@ -168,6 +171,7 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
         status="pending"
     )
     db.add(new_request)
+    
     # Get coin info for the email
     coin = db.query(models.Coin).filter(models.Coin.id == request.coin_id).first()
     coin_symbol = coin.symbol if coin else "Unknown"
@@ -181,9 +185,25 @@ def request_withdrawal(request: schemas.WithdrawalRequestCreate, db: Session = D
     db.add(notification)
     db.commit()
 
-    # Send email if notification is enabled
+    # Send email to the user if notification is enabled
     if user.email_notif_withdrawal:
         send_withdrawal_email(user.email, float(request.amount), coin_symbol, request.to_address)
+
+    # Send email notification to all administrators
+    try:
+        from utils.email import send_admin_withdrawal_alert_email
+        admins = db.query(models.User).filter(models.User.role == "admin").all()
+        for admin in admins:
+            send_admin_withdrawal_alert_email(
+                admin_email=admin.email,
+                user_email=user.email,
+                amount=float(request.amount),
+                coin_symbol=coin_symbol,
+                to_address=request.to_address,
+                network=request.network
+            )
+    except Exception as e:
+        print(f"Error sending admin withdrawal emails: {e}")
 
     return {"message": "Withdrawal request submitted for approval. An email has been sent to you."}
 

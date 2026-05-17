@@ -36,8 +36,13 @@ export default function LoginPage() {
     const checkSession = async () => {
       const currentUser = await fetchMe();
       if (currentUser) {
-        if (currentUser.role === "admin") router.push("/admin");
-        else router.push("/dashboard");
+        if ((currentUser as any).disabled) {
+          router.push("/auth/blocked");
+        } else if (currentUser.role === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard");
+        }
       }
     };
     checkSession();
@@ -56,7 +61,11 @@ export default function LoginPage() {
         await finalizeLogin(data);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Login failed. Please check your credentials.");
+      if (error.response?.status === 403 && error.response?.data?.detail === "Account disabled") {
+        router.push("/auth/blocked");
+      } else {
+        toast.error(error.response?.data?.detail || "Login failed. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }
@@ -93,7 +102,11 @@ export default function LoginPage() {
         await finalizeLogin(data);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Invalid or expired verification code.");
+      if (error.response?.status === 403 && error.response?.data?.detail === "Account disabled") {
+        router.push("/auth/blocked");
+      } else {
+        toast.error(error.response?.data?.detail || "Invalid or expired verification code.");
+      }
     } finally {
       setLoading(false);
     }
@@ -109,7 +122,11 @@ export default function LoginPage() {
       });
       await finalizeLogin(data);
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Invalid PIN code.");
+      if (error.response?.status === 403 && error.response?.data?.detail === "Account disabled") {
+        router.push("/auth/blocked");
+      } else {
+        toast.error(error.response?.data?.detail || "Invalid PIN code.");
+      }
     } finally {
       setLoading(false);
     }
@@ -117,20 +134,28 @@ export default function LoginPage() {
 
   const finalizeLogin = async (data: any) => {
     toast.success("Welcome back!");
-    // Fetch user profile after login
-    const profileRes = await api.get("/api/auth/me");
-    const userData = profileRes.data;
-    setUser(userData);
-    
-    if (!userData.is_verified) {
-      router.push("/auth/verify-required");
-      return;
-    }
+    try {
+      // Fetch user profile after login
+      const profileRes = await api.get("/api/auth/me");
+      const userData = profileRes.data;
+      setUser(userData);
+      
+      if (!userData.is_verified) {
+        router.push("/auth/verify-required");
+        return;
+      }
 
-    if (userData.role === "admin") {
-      router.push("/admin");
-    } else {
-      router.push("/dashboard");
+      if (userData.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      if (error.response?.status === 403 && error.response?.data?.detail === "Account disabled") {
+        router.push("/auth/blocked");
+      } else {
+        toast.error(error.response?.data?.detail || "Login finalization failed.");
+      }
     }
   };
 

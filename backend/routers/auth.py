@@ -65,11 +65,30 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 @router.post("/login", response_model=schemas.LoginResponse)
 def login(request: Request, response: Response, user_data: schemas.UserLogin, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if not user or not verify_password(user_data.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Your password has been reset by an administrator. Please reset it using the link sent to your email.",
+        )
+        
+    if not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account disabled",
         )
     
     # Generate and send OTP
@@ -120,6 +139,9 @@ def verify_otp(request: Request, response: Response, data: schemas.VerifyOTPRequ
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
+    
     # Success - Delete used OTP
     db.delete(db_otp)
     
@@ -161,6 +183,9 @@ def verify_pin(request: Request, response: Response, data: schemas.VerifyPINRequ
     user = db.query(models.User).filter(models.User.email == data.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
     
     if not user.withdrawal_pin_hash:
         return {"message": "No PIN set", "role": user.role, "is_verified": user.is_verified, "otp_required": False, "pin_required": False}
@@ -237,5 +262,8 @@ def get_me(request: Request, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == payload.get("sub")).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
     
     return user

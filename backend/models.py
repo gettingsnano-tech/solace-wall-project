@@ -103,6 +103,23 @@ class WalletAddress(Base):
     coin = relationship("Coin", back_populates="wallet_addresses")
     user_wallet = relationship("UserWallet", back_populates="address")
 
+    @property
+    def assigned_user_name(self):
+        if self.is_used and self.user_wallet:
+            # Handle if relationship is single or list
+            uw = self.user_wallet[0] if isinstance(self.user_wallet, list) and self.user_wallet else self.user_wallet
+            if hasattr(uw, "user") and uw.user:
+                return uw.user.full_name
+        return None
+
+    @property
+    def assigned_user_email(self):
+        if self.is_used and self.user_wallet:
+            uw = self.user_wallet[0] if isinstance(self.user_wallet, list) and self.user_wallet else self.user_wallet
+            if hasattr(uw, "user") and uw.user:
+                return uw.user.email
+        return None
+
 class UserWallet(Base):
     __tablename__ = "user_wallets"
     id = Column(Integer, primary_key=True, index=True)

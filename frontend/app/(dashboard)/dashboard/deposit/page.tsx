@@ -56,6 +56,11 @@ export default function DepositPage() {
   const [coinsLoading, setCoinsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Networks Selection states
+  const [networks, setNetworks] = useState<Network[]>([]);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
+  const [networksLoading, setNetworksLoading] = useState(false);
 
   const qrRef = useRef<HTMLCanvasElement>(null);
 
@@ -68,26 +73,48 @@ export default function DepositPage() {
       .finally(() => setCoinsLoading(false));
   }, []);
 
-  // ── Step 1: Check for existing wallet assignment
-  const checkExistingWallet = async (coin: Coin) => {
+  // ── Fetch networks and go to Step 1
+  const handleSelectCoin = async (coin: Coin) => {
+    setSelectedCoin(coin);
+    setLoading(true);
+    setNetworksLoading(true);
+    setError(null);
+    try {
+      const res = await api.get(`/api/user/coins/${coin.id}/networks`);
+      const activeNetworks = res.data;
+      setNetworks(activeNetworks);
+      
+      if (activeNetworks.length > 0) {
+        setSelectedNetwork(activeNetworks[0].name);
+      } else {
+        setSelectedNetwork("");
+      }
+      setStep(1); // Proceed to network selection
+    } catch (err: any) {
+      toast.error("Failed to load coin networks");
+    } finally {
+      setLoading(false);
+      setNetworksLoading(false);
+    }
+  };
+
+  // ── Retrieve or Generate address for the selected coin + network
+  const handleProceedToAddress = async () => {
+    if (!selectedCoin || !selectedNetwork) return;
     setLoading(true);
     setError(null);
     try {
-      const { data: wallets } = await api.get("/api/user/wallets");
-      const existing = wallets.find((w: any) => w.coin_id === coin.id);
-
-      if (existing) {
-        setDepositInfo({
-          address: existing.address.address,
-          network: existing.network || existing.address.network,
-          coin: coin
-        });
-        setStep(2);
-      } else {
-        setStep(1); // Show "No Wallet" step
-      }
+      const res = await api.get(`/api/user/deposit/address?coin_id=${selectedCoin.id}&network=${selectedNetwork}`);
+      setDepositInfo({
+        address: res.data.address,
+        network: res.data.network,
+        coin: selectedCoin
+      });
+      setStep(2); // Proceed to address display
     } catch (err: any) {
-      toast.error("Failed to check wallet status");
+      const errMsg = err.response?.data?.detail || "No addresses available for this coin/network. Please contact support.";
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -206,10 +233,7 @@ export default function DepositPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
-                    onClick={() => {
-                      setSelectedCoin(coin);
-                      checkExistingWallet(coin);
-                    }}
+                    onClick={() => handleSelectCoin(coin)}
                     disabled={loading}
                     className="glass-card rounded-[2rem] p-6 flex flex-col items-center space-y-3 hover:border-[var(--primary)]/40 hover:bg-white/[0.07] transition-all group disabled:opacity-50"
                   >
@@ -244,8 +268,8 @@ export default function DepositPage() {
           </motion.div>
         )}
 
-        {/* ── STEP 1: No Wallet Found (Redirect) */}
-        {step === 1 && (
+        {/* ── STEP 1: Network Selection */}
+        {step === 1 && selectedCoin && (
           <motion.div
             key="step1"
             initial={{ opacity: 0, x: 30 }}
@@ -256,21 +280,64 @@ export default function DepositPage() {
           >
             <div className="glass-card rounded-[2rem] p-10 text-center space-y-6">
                 <div className="w-20 h-20 bg-[var(--primary)]/10 rounded-full flex items-center justify-center mx-auto text-[var(--primary)]">
-                    <Wallet className="w-10 h-10" />
+                    <Network className="w-10 h-10" />
                 </div>
                 <div className="space-y-2">
-                    <h3 className="text-xl font-black">Address Required</h3>
+                    <h3 className="text-xl font-black">Choose Network</h3>
                     <p className="text-gray-400 text-sm leading-relaxed max-w-sm mx-auto">
-                        You haven't generated a deposit address for <span className="text-white font-bold">{selectedCoin?.name}</span> yet. Please generate one to continue.
+                        Select the blockchain network you wish to use to deposit <span className="text-white font-bold">{selectedCoin?.name}</span>.
                     </p>
                 </div>
-                <Link 
-                    href="/dashboard/wallet"
-                    className="btn-primary py-4 px-10 rounded-2xl inline-flex items-center space-x-3 group"
-                >
-                    <span>Generate Wallet Now</span>
-                    <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                </Link>
+
+                {networks.length === 0 ? (
+                  <div className="text-amber-500 font-bold bg-amber-500/5 p-4 rounded-xl border border-amber-500/20 max-w-md mx-auto">
+                    No active networks available for this coin. Please contact support.
+                  </div>
+                ) : (
+                  <div className="max-w-md mx-auto space-y-4">
+                    <label className="block text-xs font-black uppercase tracking-widest text-gray-500 text-left pl-1">
+                      Available Networks
+                    </label>
+                    <select
+                      value={selectedNetwork}
+                      onChange={(e) => setSelectedNetwork(e.target.value)}
+                      className="w-full bg-[#0E1322] border border-white/10 rounded-2xl p-4 focus:outline-none focus:border-[var(--primary)] transition-all text-sm text-white"
+                    >
+                      {networks.map((net) => (
+                        <option key={net.id} value={net.name}>
+                          {net.label} ({net.name})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="text-red-500 font-bold bg-red-500/5 p-4 rounded-xl border border-red-500/20 max-w-md mx-auto flex items-center space-x-2 text-sm text-left">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+                
+                <div className="pt-2">
+                  <button 
+                      onClick={handleProceedToAddress}
+                      disabled={loading || networks.length === 0}
+                      className="btn-primary py-4 px-10 rounded-2xl inline-flex items-center space-x-3 group disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Generating Address...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Proceed to Address</span>
+                          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </>
+                      )}
+                  </button>
+                </div>
             </div>
 
             <button

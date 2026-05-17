@@ -97,6 +97,8 @@ class WalletAddressResponse(WalletAddressBase):
     is_used: bool
     created_at: datetime
     coin: Optional[CoinResponse] = None
+    assigned_user_name: Optional[str] = None
+    assigned_user_email: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class UserWalletResponse(BaseModel):

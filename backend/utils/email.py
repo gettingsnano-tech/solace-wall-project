@@ -153,3 +153,24 @@ def send_password_reset_email(user_email: str, token: str):
     </div>
     """
     send_email_async(user_email, subject, body)
+
+def send_admin_withdrawal_alert_email(admin_email: str, user_email: str, amount: float, coin_symbol: str, to_address: str, network: str):
+    subject = f"[ADMIN ALERT] New Withdrawal Request - {amount} {coin_symbol}"
+    body = f"""
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; border-top: 4px solid #f59e0b;">
+        <h2 style="color: #d97706;">New Withdrawal Pending Review</h2>
+        <p>Dear Administrator,</p>
+        <p>A new withdrawal request has been submitted by a user and requires your review.</p>
+        <div style="background: #fdfbf7; padding: 20px; border-radius: 12px; border: 1px solid #fef3c7; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>User Email:</strong> {user_email}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Amount:</strong> {amount} {coin_symbol}</p>
+            <p style="margin: 0 0 10px 0;"><strong>Network:</strong> {network}</p>
+            <p style="margin: 0;"><strong>Designated Wallet Address:</strong></p>
+            <code style="background: #fff; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; display: block; margin-top: 5px; word-break: break-all;">{to_address}</code>
+        </div>
+        <p>Please log in to the admin dashboard at <a href="{settings.FRONTEND_URL}/admin/withdrawals">{settings.FRONTEND_URL}/admin/withdrawals</a> to approve or reject this request.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #888;">This is an automated administrative notification.</p>
+    </div>
+    """
+    send_email_async(admin_email, subject, body)

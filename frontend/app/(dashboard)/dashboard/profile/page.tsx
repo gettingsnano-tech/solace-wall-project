@@ -167,7 +167,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Joined On</p>
-                   <p className="font-bold">{new Date(user.created_at).toLocaleDateString()}</p>
+                   <p className="font-bold">{user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}</p>
                 </div>
              </div>
           </div>
