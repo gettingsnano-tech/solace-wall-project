@@ -134,6 +134,16 @@ class TransactionResponse(BaseModel):
     coin: CoinResponse
     model_config = ConfigDict(from_attributes=True)
 
+class TransactionUpdate(BaseModel):
+    amount: Optional[Decimal] = None
+    network: Optional[str] = None
+    tx_hash: Optional[str] = None
+    from_address: Optional[str] = None
+    to_address: Optional[str] = None
+    status: Optional[str] = None
+    confirmations: Optional[int] = None
+    notes: Optional[str] = None
+
 class AdminDepositCreate(BaseModel):
     coin_id: int
     network: str
