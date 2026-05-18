@@ -347,8 +347,8 @@ export default function AdminWalletsPage() {
         </div>
       </div>
 
-      {/* Address table */}
-      <div className="glass-card rounded-[2.5rem] overflow-hidden">
+      {/* Address table – desktop only */}
+      <div className="hidden md:block glass-card rounded-[2.5rem] overflow-hidden">
          <div className="overflow-x-auto">
             <table className="w-full text-left">
                <thead>
@@ -443,6 +443,118 @@ export default function AdminWalletsPage() {
             </table>
          </div>
       </div>
+
+      {/* ── Mobile card view (visible on small screens only) ── */}
+      <div className="block md:hidden space-y-4">
+        {/* Mobile select-all bar */}
+        <div className="flex items-center justify-between px-1">
+          <button
+            onClick={toggleSelectAll}
+            className="text-xs font-bold text-[var(--primary)] underline underline-offset-2"
+          >
+            {selectedIds.length === filteredWallets.length && filteredWallets.length > 0 ? 'Deselect All' : 'Select All'}
+          </button>
+          {selectedIds.length > 0 && (
+            <span className="text-xs text-gray-400 font-bold">{selectedIds.length} selected</span>
+          )}
+        </div>
+
+        {filteredWallets.length === 0 ? (
+          <div className="glass-card rounded-[2rem] p-8 text-center text-gray-600 font-bold text-sm">
+            No addresses found.
+          </div>
+        ) : (
+          filteredWallets.map((wallet: any, idx) => (
+            <motion.div
+              key={wallet.id}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.02 }}
+              onClick={() => toggleSelectOne(wallet.id)}
+              className={`glass-card rounded-[1.75rem] p-5 flex items-start space-x-4 cursor-pointer transition-all border-2 ${
+                selectedIds.includes(wallet.id)
+                  ? 'border-[var(--primary)]/60 bg-[var(--primary)]/5'
+                  : 'border-transparent'
+              }`}
+            >
+              {/* Checkbox */}
+              <div className="pt-0.5 flex-shrink-0">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 rounded border-white/10 bg-white/5 checked:bg-[var(--primary)] cursor-pointer"
+                  checked={selectedIds.includes(wallet.id)}
+                  onChange={() => toggleSelectOne(wallet.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {/* Coin icon */}
+              {wallet.coin?.icon_url ? (
+                <img src={wallet.coin.icon_url} alt={wallet.coin?.name} className="w-10 h-10 rounded-full object-contain bg-white/5 p-1 flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[var(--primary)] text-xs font-bold flex-shrink-0">#{wallet.coin_id}</div>
+              )}
+
+              {/* Details */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-sm truncate">{wallet.coin?.name || `Asset #${wallet.coin_id}`}</span>
+                  <div className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest flex-shrink-0 ${
+                    wallet.is_used ? 'bg-red-500/10 text-red-500' : 'bg-[var(--secondary)]/10 text-[var(--secondary)]'
+                  }`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${ wallet.is_used ? 'bg-red-500' : 'bg-[var(--secondary)]'}`} />
+                    <span>{wallet.is_used ? 'Used' : 'Free'}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-white/[0.05] px-2 py-0.5 rounded text-[10px] font-black uppercase text-[var(--secondary)] tracking-widest">{wallet.network}</span>
+                </div>
+                <p className="font-mono text-[11px] text-gray-400 break-all leading-relaxed">{wallet.address}</p>
+                {wallet.is_used && (wallet.assigned_user_name || wallet.assigned_user_email) && (
+                  <div className="pt-1">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-0.5">Assigned To</p>
+                    <p className="text-xs font-bold text-white">{wallet.assigned_user_name || 'N/A'}</p>
+                    <p className="text-[10px] font-mono text-gray-400">{wallet.assigned_user_email}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Delete button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteOne(wallet.id, wallet.address, wallet.is_used);
+                }}
+                className="p-2 rounded-lg text-gray-600 hover:text-red-500 hover:bg-red-500/10 transition-all flex-shrink-0 mt-0.5"
+                title="Delete"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </motion.div>
+          ))
+        )}
+      </div>
+
+      {/* ── Mobile sticky bulk-delete bar ── */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden"
+          >
+            <button
+              onClick={handleBulkDelete}
+              disabled={deletingBulk}
+              className="flex items-center space-x-3 bg-red-500 text-white font-black px-8 py-4 rounded-full shadow-2xl shadow-red-500/30 text-sm uppercase tracking-widest"
+            >
+              {deletingBulk ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+              <span>Delete {selectedIds.length} Selected</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Bulk Import Modal */}
       <AnimatePresence>
