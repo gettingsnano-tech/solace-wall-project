@@ -516,20 +516,21 @@ export default function AdminUserDetailPage() {
                                   </button>
                                 </div>
                              ) : (
-                                <div className="text-[10px] text-gray-500 group flex items-center space-x-2 mt-0.5">
-                                  <span>{new Date(tx.timestamp).toLocaleString()}</span>
-                                  <button 
-                                    onClick={() => {
-                                      setEditingDateType('tx');
-                                      setEditingDateId(tx.id);
-                                      const d = new Date(tx.timestamp);
-                                      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                                      setEditDateValue(d.toISOString().slice(0,16));
-                                    }}
-                                    className="opacity-0 group-hover:opacity-100 text-[var(--primary)] transition-opacity"
-                                  >
-                                    <Pencil className="w-3 h-3" />
-                                  </button>
+                                <div className="text-[10px] text-gray-500 flex flex-wrap items-center gap-2 mt-0.5">
+                                   <span>{new Date(tx.timestamp).toLocaleString()}</span>
+                                   <button 
+                                     onClick={() => {
+                                       setEditingDateType('tx');
+                                       setEditingDateId(tx.id);
+                                       const d = new Date(tx.timestamp);
+                                       d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                                       setEditDateValue(d.toISOString().slice(0,16));
+                                     }}
+                                     className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-[var(--primary)]/15 hover:bg-[var(--primary)]/30 text-[var(--primary)] transition-all flex-shrink-0"
+                                     title="Edit date"
+                                   >
+                                     <Pencil className="w-4 h-4" />
+                                   </button>
                                 </div>
                              )}
                              {tx.from_address && (
