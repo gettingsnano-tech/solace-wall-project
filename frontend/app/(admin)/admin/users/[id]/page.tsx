@@ -720,41 +720,54 @@ export default function AdminUserDetailPage() {
                  <span>Audit Trail</span>
               </h4>
               <div className="space-y-4">
-                 <div className="text-xs text-gray-500 leading-relaxed group flex flex-col space-y-2">
-                    <span>Account created on</span>
-                    {editingDateType === 'user' && editingDateId === user.id ? (
-                       <div className="flex items-center space-x-2">
-                         <input 
-                           type="datetime-local" 
-                           className="bg-[#0A0E1A] border border-[var(--primary)]/40 rounded-lg px-2 py-1 text-xs text-white w-full"
-                           value={editDateValue}
-                           onChange={(e) => setEditDateValue(e.target.value)}
-                         />
-                         <button onClick={() => handleDateUpdate('user', user.id)} className="text-green-500 hover:text-green-400 bg-white/5 p-1 rounded">
-                           {editDateLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                         </button>
-                         <button onClick={() => {setEditingDateType(null); setEditingDateId(null);}} className="text-red-500 hover:text-red-400 bg-white/5 p-1 rounded">
-                           <X className="w-3 h-3" />
-                         </button>
-                       </div>
-                    ) : (
-                       <div className="flex items-center space-x-2 text-white font-bold">
-                          <span>{new Date(user.created_at).toLocaleString()}</span>
+                  <div className="bg-white/[0.03] border border-white/5 p-5 rounded-2xl group flex flex-col space-y-3">
+                     <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Account Created On (Registration)</span>
+                     {editingDateType === 'user' && editingDateId === user.id ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <input 
+                            type="datetime-local" 
+                            className="bg-[#0A0E1A] border border-[var(--primary)]/40 rounded-xl px-4 py-3 text-sm text-white w-full focus:outline-none focus:border-[var(--primary)]"
+                            value={editDateValue}
+                            onChange={(e) => setEditDateValue(e.target.value)}
+                          />
                           <button 
-                            onClick={() => {
-                              setEditingDateType('user');
-                              setEditingDateId(user.id);
-                              const d = new Date(user.created_at);
-                              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                              setEditDateValue(d.toISOString().slice(0,16));
-                            }}
-                            className="opacity-0 group-hover:opacity-100 text-[var(--primary)] transition-opacity"
+                            onClick={() => handleDateUpdate('user', user.id)} 
+                            className="p-3 bg-green-500/20 hover:bg-green-500/40 text-green-400 rounded-xl transition-all flex-shrink-0 cursor-pointer flex items-center justify-center"
+                            title="Save"
                           >
-                            <Pencil className="w-3 h-3" />
+                            {editDateLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                           </button>
-                       </div>
-                    )}
-                 </div>
+                          <button 
+                            onClick={() => {setEditingDateType(null); setEditingDateId(null);}} 
+                            className="p-3 bg-red-500/10 hover:bg-red-500/30 text-red-400 rounded-xl transition-all flex-shrink-0 cursor-pointer flex items-center justify-center"
+                            title="Cancel"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                     ) : (
+                        <div 
+                          onClick={() => {
+                            setEditingDateType('user');
+                            setEditingDateId(user.id);
+                            const d = new Date(user.created_at);
+                            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                            setEditDateValue(d.toISOString().slice(0,16));
+                          }}
+                          className="flex items-center justify-between text-white font-bold bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-[var(--primary)]/30 p-4 rounded-xl transition-all cursor-pointer"
+                        >
+                           <div className="flex flex-col min-w-0">
+                              <span className="text-base sm:text-lg font-black tracking-tight truncate">
+                                {new Date(user.created_at).toLocaleString()}
+                              </span>
+                              <span className="text-[10px] text-gray-500 font-bold mt-0.5">Click to edit registration date</span>
+                           </div>
+                           <div className="p-3 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] rounded-xl transition-colors flex-shrink-0">
+                             <Pencil className="w-4 h-4" />
+                           </div>
+                        </div>
+                     )}
+                  </div>
                  <p className="text-xs text-gray-500 leading-relaxed italic">No recent admin activity for this user.</p>
               </div>
            </div>
