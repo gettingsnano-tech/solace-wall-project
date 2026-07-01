@@ -90,12 +90,12 @@ def get_public_stats(db: Session = Depends(get_db)):
         settings = models.PlatformSettings()
     
     return {
-        "users": total_users + settings.users_offset,
-        "assets": float(settings.assets_offset), # Static display assets
-        "pending_withdrawals": pending_withdrawals + settings.withdrawals_offset,
-        "total_deposits": float(total_deposits) + float(settings.deposits_offset),
-        "uptime": settings.uptime_display,
-        "encryption": settings.encryption_display
+        "users": total_users + (settings.users_offset or 0),
+        "assets": float(settings.assets_offset or 0), # Static display assets
+        "pending_withdrawals": pending_withdrawals + (settings.withdrawals_offset or 0),
+        "total_deposits": float(total_deposits) + float(settings.deposits_offset or 0),
+        "uptime": settings.uptime_display or "99.99%",
+        "encryption": settings.encryption_display or "256-bit"
     }
 
 @router.get("/exchanges", response_model=List[schemas.ExchangeResponse])
