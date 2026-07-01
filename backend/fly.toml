@@ -1,0 +1,39 @@
+# backend/fly.toml
+# Fly.io configuration file for the backend service
+
+app = "solace-wall-project"
+primary_region = "lax"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8002"
+
+[[mounts]]
+  source = "solace_data"
+  destination = "/app/chroma_data"
+
+[experimental]
+  cmd = ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8002"]
+
+[[services]]
+  http_checks = []
+  internal_port = 8002
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443

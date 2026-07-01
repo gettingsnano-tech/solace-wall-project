@@ -1,0 +1,32 @@
+# frontend/fly.toml
+# Fly.io configuration file for the frontend service
+
+app = "solace-wall-project-frontend"
+primary_region = "lax"
+
+[build]
+  dockerfile = "Dockerfile"
+  [build.args]
+    # Vite embeds env vars at build time. Replace this with your backend URL.
+    VITE_NEXT_PUBLIC_API_URL = "https://solace-wall-project.fly.dev"
+
+[[services]]
+  http_checks = []
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  script_checks = []
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
